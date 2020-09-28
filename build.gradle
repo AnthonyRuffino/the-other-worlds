@@ -39,6 +39,18 @@ allprojects {
 project(":desktop") {
     apply plugin: "java-library"
 
+    def mainClassName = "io.blocktyper.theotherworlds.desktop.DesktopLauncher"
+
+    jar {
+        manifest {
+            attributes "Main-Class": "$mainClassName"
+        }
+
+        from {
+            configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+        }
+    }
+
 
     dependencies {
         implementation project(":core")
