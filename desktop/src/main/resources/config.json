@@ -1,0 +1,146 @@
+{
+  "lwjgl": {
+    "maxNetThreads": -1,
+    "useGL30": false,
+    "gles30ContextMajorVersion": 3,
+    "gles30ContextMinorVersion": 2,
+    "r": 8,
+    "g": 8,
+    "b": 8,
+    "a": 8,
+    "depth": 16,
+    "stencil": 0,
+    "samples": 0,
+    "width": 1350,
+    "height": 1000,
+    "x": -1,
+    "y": -1,
+    "fullscreen": false,
+    "overrideDensity": -1,
+    "vSyncEnabled": true,
+    "title": null,
+    "forceExit": true,
+    "resizable": true,
+    "audioDeviceSimultaneousSources": 16,
+    "audioDeviceBufferSize": 999,
+    "audioDeviceBufferCount": 9,
+    "initialBackgroundColor": {
+      "r": 0,
+      "g": 0,
+      "b": 0,
+      "a": 1
+    },
+    "foregroundFPS": 60,
+    "backgroundFPS": 60,
+    "pauseWhenMinimized": true,
+    "pauseWhenBackground": false,
+    "allowSoftwareMode": false,
+    "preferencesDirectory": ".prefs/",
+    "useHDPI": false
+  },
+  "gameConfig": {
+    "startServer": false,
+    "gameModeSettings": {
+      "global": {
+        "WORLD_PAUSE_WHILE_IN_MENU": true
+      },
+      "play": {
+        "BASE_SPEED": 5.0,
+        "STARTING_LOCATION": {
+          "x": 5,
+          "y": 5
+        },
+        "STARTING_SPELLS": [
+          "FIREBALL",
+          "TELEPORT"
+        ]
+      }
+    },
+    "gameModeKeyBindings": {
+      "global": {
+        "F11": {
+          "listenerAction": "toggle_fullscreen"
+        },
+        "ESCAPE": {
+          "listenerAction": "toggle_menu",
+          "checkedAction": null
+        }
+      },
+      "play": {
+        "W": {
+          "checkedAction": "forward"
+        },
+        "A": {
+          "checkedAction": "left"
+        },
+        "S": {
+          "checkedAction": "back"
+        },
+        "D": {
+          "checkedAction": "right"
+        },
+        "NUM_1": {
+          "listenerAction": "action_bar_1_1"
+        },
+        "NUM_2": {
+          "listenerAction": "action_bar_1_2"
+        },
+        "NUM_1+ALT_LEFT": {
+          "listenerAction": "action_bar_2_1"
+        },
+        "NUM_2+ALT_LEFT": {
+          "listenerAction": "action_bar_2_2"
+        },
+        "PAGE_UP": {
+          "listenerAction": "shift_camera_up"
+        },
+        "PAGE_DOWN": {
+          "listenerAction": "shift_camera_down"
+        },
+        "PAGE_UP+ALT_LEFT": {
+          "listenerAction": "shift_camera_left"
+        },
+        "PAGE_DOWN+ALT_LEFT": {
+          "listenerAction": "shift_camera_right"
+        }
+      }
+    },
+    "gameModeButtonBindings": {
+      "global": {
+        "MIDDLE": {
+          "worldAction": "toggle_autorun"
+        },
+        "BACK": {
+          "worldAction": "zoom_out"
+        },
+        "FORWARD": {
+          "worldAction": "zoom_in"
+        }
+      },
+      "menu": {
+        "LEFT": {
+          "hudAction": "select_menu_option"
+        },
+        "MIDDLE": {
+          "hudAction": "toggle_autorun"
+        },
+        "BACK": {
+          "hudAction": "scroll_menu_option_down"
+        },
+        "FORWARD": {
+          "hudAction": "scroll_menu_option_up"
+        }
+      },
+      "play": {
+        "LEFT": {
+          "worldAction": "select_entity",
+          "hudAction": "select_hud_item"
+        },
+        "RIGHT": {
+          "worldAction": "auto_attack_entity",
+          "hudAction": "deselect_hud_item"
+        }
+      }
+    }
+  }
+}

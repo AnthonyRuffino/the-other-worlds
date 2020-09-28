@@ -1,0 +1,9 @@
+apply plugin: "java"
+
+dependencies {
+    implementation 'org.jetbrains:annotations:19.0.0'
+}
+
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+
+sourceSets.main.java.srcDirs = [ "src/main/java" ]
