@@ -10,6 +10,9 @@
 #local config
 local_config.json
 
+# Avoid packr jar file
+!packr-all-2.7.0.jar
+
 # public/private keys
 id_rsa*
 

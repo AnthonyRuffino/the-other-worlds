@@ -17,7 +17,7 @@ public class DesktopLauncher {
 
         RootConfig config = FileUtils.getLocalLwjglApplicationConfig(
                 getClass().getClassLoader(),
-                "config.json",
+                "default_config.json",
                 "./local_config.json"
         );
 

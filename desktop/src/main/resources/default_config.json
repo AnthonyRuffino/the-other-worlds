@@ -39,7 +39,7 @@
     "useHDPI": false
   },
   "gameConfig": {
-    "startServer": false,
+    "startServer": true,
     "gameModeSettings": {
       "global": {
         "WORLD_PAUSE_WHILE_IN_MENU": true
