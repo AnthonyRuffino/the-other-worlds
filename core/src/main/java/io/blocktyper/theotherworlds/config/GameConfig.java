@@ -85,4 +85,12 @@ public class GameConfig {
         }
         return Optional.of(node);
     }
+
+    public Optional<Map<String, KeyBinding>> gameModeKeyBindings(String gameMode) {
+        return Optional.ofNullable(gameModeKeyBindings.get(gameMode));
+    }
+
+    public Optional<Map<String, ButtonBinding>> gameModeKeyButtonBindings(String gameMode) {
+        return Optional.ofNullable(gameModeButtonBindings.get(gameMode));
+    }
 }

@@ -1,4 +1,4 @@
-package io.blocktyper.theotherworlds.net.messaging;
+package io.blocktyper.theotherworlds.server.messaging;
 
 public class LoginRequest {
     public String username = "";

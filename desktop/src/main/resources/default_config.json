@@ -68,16 +68,16 @@
       },
       "play": {
         "W": {
-          "checkedAction": "forward"
+          "listenerAction": "forward"
         },
         "A": {
-          "checkedAction": "left"
+          "listenerAction": "left"
         },
         "S": {
-          "checkedAction": "back"
+          "listenerAction": "back"
         },
         "D": {
-          "checkedAction": "right"
+          "listenerAction": "right"
         },
         "NUM_1": {
           "listenerAction": "action_bar_1_1"

@@ -1,4 +1,4 @@
-package io.blocktyper.theotherworlds.net.auth;
+package io.blocktyper.theotherworlds.server.auth;
 
 import io.blocktyper.theotherworlds.config.FileUtils;
 
