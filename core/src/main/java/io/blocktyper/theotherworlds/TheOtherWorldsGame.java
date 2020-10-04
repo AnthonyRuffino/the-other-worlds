@@ -15,10 +15,7 @@ import io.blocktyper.theotherworlds.server.world.WorldEntityUpdate;
 import io.blocktyper.theotherworlds.visible.RelativeState;
 import io.blocktyper.theotherworlds.visible.SpriteUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -70,11 +67,12 @@ public class TheOtherWorldsGame extends BaseGame {
 
             font = new BitmapFont();
 
-            authUtils = new AuthUtils(this);
-            Client client = authUtils.setUpClient();
+            authUtils = new AuthUtils(this, this::postReconnect);
+            authUtils.setUpClient();
             authUtils.promptLogin(Gdx.input, USER_DATA_DIRECTORY);
 
-            Gdx.input.setInputProcessor(new ClientInputAdapter(this, client));
+
+            Gdx.input.setInputProcessor(new ClientInputAdapter(this, authUtils));
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("Unexpected message creating game: " + e.getMessage());
@@ -84,7 +82,7 @@ public class TheOtherWorldsGame extends BaseGame {
 
     Set<String> addWorldEntityUpdates(List<WorldEntityUpdate> worldEntityUpdates, boolean expectedMissing) {
         synchronized (this.worldEntityUpdates) {
-            return worldEntityUpdates.parallelStream().flatMap(update -> {
+            return worldEntityUpdates.stream().flatMap(update -> {
                 if (worldEntities.containsKey(update.getId()) || expectedMissing) {
                     this.worldEntityUpdates.add(update);
                     return null;
@@ -94,16 +92,21 @@ public class TheOtherWorldsGame extends BaseGame {
         }
     }
 
+    void postReconnect(boolean success) {
+        //ask for updates and removals
+    }
+
 
     @Override
     public void render() {
         super.render();
 
+
         //add player if does not exist
 
         //add all new world components
         synchronized (worldEntityUpdates) {
-            worldEntityUpdates.parallelStream().forEach(update -> {
+            worldEntityUpdates.forEach(update -> {
                 WorldEntity entity = worldEntities.get(update.getId());
                 if (entity == null) {
                     worldEntities.put(update.getId(), update.generateWorldEntity(clientWorld));

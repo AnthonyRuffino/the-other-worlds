@@ -6,10 +6,12 @@ import com.badlogic.gdx.InputAdapter;
 import com.esotericsoftware.kryonet.Client;
 import io.blocktyper.theotherworlds.config.ButtonBinding;
 import io.blocktyper.theotherworlds.config.KeyBinding;
+import io.blocktyper.theotherworlds.server.auth.AuthUtils;
 import io.blocktyper.theotherworlds.server.messaging.PerformActionRequest;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 public class ClientInputAdapter extends InputAdapter {
 
@@ -22,14 +24,14 @@ public class ClientInputAdapter extends InputAdapter {
     );
 
     TheOtherWorldsGame game;
-    Client client;
+    AuthUtils authUtils;
 
     Optional<Map<String, KeyBinding>> globalKeyBindings;
     Optional<Map<String, ButtonBinding>> globalButtonBindings;
 
-    public ClientInputAdapter(TheOtherWorldsGame game, Client client) {
+    public ClientInputAdapter(TheOtherWorldsGame game, AuthUtils authUtils) {
         this.game = game;
-        this.client = client;
+        this.authUtils = authUtils;
         this.globalButtonBindings = Optional.ofNullable(game.config.gameModeButtonBindings.get("global"));
         this.globalKeyBindings = Optional.ofNullable(game.config.gameModeKeyBindings.get("global"));
     }
@@ -53,7 +55,6 @@ public class ClientInputAdapter extends InputAdapter {
         if (game.camera.zoom < .2f) {
             game.camera.zoom = .2f;
         }
-        System.out.println("camera.zoom: " + game.camera.zoom);
         return super.scrolled(amount);
     }
 
@@ -108,14 +109,14 @@ public class ClientInputAdapter extends InputAdapter {
             PerformActionRequest request = new PerformActionRequest();
             request.action = keyBinding.listenerAction;
             request.cancel = isCancel;
-            client.sendTCP(request);
+            authUtils.getClient().sendTCP(request);
         });
 
         gameModeKeyBinding.ifPresent(keyBinding -> {
             PerformActionRequest request = new PerformActionRequest();
             request.action = keyBinding.listenerAction;
             request.cancel = isCancel;
-            client.sendTCP(request);
+            authUtils.getClient().sendTCP(request);
         });
     }
 

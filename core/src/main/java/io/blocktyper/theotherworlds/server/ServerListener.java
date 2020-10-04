@@ -34,7 +34,9 @@ public class ServerListener extends Listener {
         server.getCurrentWorldEntityStates();
         connection.sendTCP(
                 new WorldEntityUpdates(
-                        server.getCurrentWorldEntityStates().values().parallelStream().collect(Collectors.toList())
+                        server.getCurrentWorldEntityStates(object.getMissingEntities())
+                                .values().parallelStream()
+                                .collect(Collectors.toList())
                 ).setMissing(true)
         );
     }

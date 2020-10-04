@@ -14,9 +14,9 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class TheOtherWorldsGameServer {
 
@@ -39,6 +39,7 @@ public class TheOtherWorldsGameServer {
     private Map<String, WorldEntity> worldEntities = new ConcurrentHashMap();
 
 
+    public static float GRAVITY = 0f;
     public static float TARGET_DELTA = 1f / 60f;
     private float accumulator = 0;
     private float TARGET_ACCUMULATOR = TARGET_DELTA / 10f;
@@ -53,7 +54,7 @@ public class TheOtherWorldsGameServer {
 
         try {
 
-            world = new World(new Vector2(0, -1000), true);
+            world = new World(new Vector2(0, GRAVITY), true);
 
             server = new Server();
             kryo = server.getKryo();
@@ -132,21 +133,8 @@ public class TheOtherWorldsGameServer {
         processPlayerMovementActions(delta_time);
         doPhysicsStep(delta_time);
 
-
-
-            new WorldEntityUpdates(
-                    worldEntities.entrySet().parallelStream().flatMap(
-                            entry ->
-                                    WorldEntityUpdate.getUpdate(
-                                            beforePhysicsState.get(entry.getKey()),
-                                            new WorldEntityUpdate(entry.getValue())
-                                    ).stream()
-                    ).collect(Collectors.toList())
-            ).send(worldEntityUpdates -> {
-                connectionMap.values().parallelStream()
-                        .forEach(connection -> connection.sendUDP(worldEntityUpdates));
-            });
-
+        new WorldEntityUpdates(gatherUpdatesFromPhysics(beforePhysicsState))
+                .send(this::sendUpdatesToPlayers);
 
 
         //applyNewPlayerPositions();
@@ -154,6 +142,42 @@ public class TheOtherWorldsGameServer {
 
         //sendTCP updates
         //sendUDP updates
+    }
+
+    private synchronized void sendUpdatesToPlayers(WorldEntityUpdates worldEntityUpdates) {
+        try{
+            List<WorldEntityUpdate> data = worldEntityUpdates.getUpdates();
+            int size = data.size();
+            System.out.println("Sending updates: " + size);
+            int BATCH = 30;
+            IntStream.range(0, (worldEntityUpdates.getUpdates().size()+BATCH-1)/BATCH)
+                    .mapToObj(i -> data.subList(i*BATCH, Math.min(size, (i+1)*BATCH)))
+                    .forEach(batch -> connectionMap.values()
+                            .forEach(
+                                    connection -> connection.sendUDP(new WorldEntityUpdates(new ArrayList<>(batch)))
+                            )
+                    );
+        } catch(Exception e) {
+            e.printStackTrace();
+            System.out.println("Unexpected exception sending updates to players: " + e.getMessage());
+        }
+
+    }
+
+    @NotNull
+    private List<WorldEntityUpdate> gatherUpdatesFromPhysics(Map<String, WorldEntityUpdate> beforePhysicsState) {
+        synchronized (worldEntities) {
+            return worldEntities.entrySet().stream().flatMap(
+                    entry -> getUpdate(beforePhysicsState, entry).stream()
+            ).collect(Collectors.toList());
+        }
+    }
+
+    private Optional<WorldEntityUpdate> getUpdate(Map<String, WorldEntityUpdate> beforePhysicsState, Map.Entry<String, WorldEntity> entry) {
+        return WorldEntityUpdate.getUpdate(
+                beforePhysicsState.get(entry.getKey()),
+                new WorldEntityUpdate(entry.getValue())
+        );
     }
 
     @NotNull
