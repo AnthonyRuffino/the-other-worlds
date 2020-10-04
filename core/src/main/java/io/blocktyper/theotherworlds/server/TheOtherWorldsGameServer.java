@@ -32,6 +32,7 @@ public class TheOtherWorldsGameServer {
     Map<Integer, Connection> connectionMap = new HashMap<>();
     Map<Integer, Object> playerMap = new HashMap<>();
 
+    private static final int BATCH_SIZE = 30;
     Server server = new Server(1000000, 1000000);
     Kryo kryo;
 
@@ -104,8 +105,9 @@ public class TheOtherWorldsGameServer {
         tick++;
         long delta_time = getDeltaTime();
 
+        if (tick % 20 == 0) {
+            //System.out.println("entity");
 
-        if (tick % 100 == 0) {
             String entityId = "e_" + tick;
 
             worldEntities.put(
@@ -113,22 +115,20 @@ public class TheOtherWorldsGameServer {
                     new WorldEntity(
                             entityId,
                             world,
+                            (tick * (tick / 4)),
+                            (tick * (tick / 4)),
+                            tick * (tick / 4),
+                            tick * (tick / 4),
                             tick,
                             tick,
                             tick,
                             tick,
-                            tick,
-                            tick,
-                            tick,
-                            tick,
-                            "sun.jpg"
+                            "mo.png"
                     )
             );
         }
 
-
         Map<String, WorldEntityUpdate> beforePhysicsState = getCurrentWorldEntityStates();
-
 
         processPlayerMovementActions(delta_time);
         doPhysicsStep(delta_time);
@@ -145,23 +145,31 @@ public class TheOtherWorldsGameServer {
     }
 
     private synchronized void sendUpdatesToPlayers(WorldEntityUpdates worldEntityUpdates) {
-        try{
-            List<WorldEntityUpdate> data = worldEntityUpdates.getUpdates();
-            int size = data.size();
-            System.out.println("Sending updates: " + size);
-            int BATCH = 30;
-            IntStream.range(0, (worldEntityUpdates.getUpdates().size()+BATCH-1)/BATCH)
-                    .mapToObj(i -> data.subList(i*BATCH, Math.min(size, (i+1)*BATCH)))
-                    .forEach(batch -> connectionMap.values()
-                            .forEach(
-                                    connection -> connection.sendUDP(new WorldEntityUpdates(new ArrayList<>(batch)))
-                            )
-                    );
-        } catch(Exception e) {
-            e.printStackTrace();
+        try {
+            synchronized (connectionMap) {
+                List<WorldEntityUpdate> data = worldEntityUpdates.getUpdates();
+                int size = data.size();
+                Set<Integer> connectionsToRemove = new HashSet<>();
+                IntStream.range(0, (worldEntityUpdates.getUpdates().size() + BATCH_SIZE - 1) / BATCH_SIZE)
+                        .mapToObj(i -> data.subList(i * BATCH_SIZE, Math.min(size, (i + 1) * BATCH_SIZE)))
+                        .forEach(batch -> connectionMap.values()
+                                .forEach(
+                                        connection -> {
+                                            try {
+                                                connection.sendUDP(new WorldEntityUpdates(new ArrayList<>(batch)));
+                                            } catch (Exception e) {
+                                                System.out.println("Unexpected exception sending updates to player: " + e.getMessage() + ". " + connection.getID());
+                                                connectionsToRemove.add(connection.getID());
+                                            }
+
+                                        }
+                                )
+                        );
+                connectionsToRemove.forEach(id -> connectionMap.remove(id));
+            }
+        } catch (Exception e) {
             System.out.println("Unexpected exception sending updates to players: " + e.getMessage());
         }
-
     }
 
     @NotNull

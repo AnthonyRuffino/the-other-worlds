@@ -61,7 +61,9 @@ public class AuthUtils {
         try {
             client.connect(5000, "localhost", 54555, 54777);
         } catch (Exception ex) {
-            throw new RuntimeException("Unable to connect: " + ex);
+            System.out.println("Unable to connect: " + ex);
+            ex.printStackTrace();
+            return;
         }
         client.addListener(new ClientListener(game, this));
     }

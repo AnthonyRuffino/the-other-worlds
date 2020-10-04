@@ -6,7 +6,6 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.World;
-import com.esotericsoftware.kryonet.Client;
 import io.blocktyper.theotherworlds.config.GameConfig;
 import io.blocktyper.theotherworlds.server.TheOtherWorldsGameServer;
 import io.blocktyper.theotherworlds.server.auth.AuthUtils;
@@ -35,6 +34,9 @@ public class TheOtherWorldsGame extends BaseGame {
 
     final GameConfig config;
     String gameMode = "play";
+
+
+    private Timer reconnectionTimer;
 
 
     private final Map<String, Sprite> spriteMap = new ConcurrentHashMap<>();
@@ -73,10 +75,26 @@ public class TheOtherWorldsGame extends BaseGame {
 
 
             Gdx.input.setInputProcessor(new ClientInputAdapter(this, authUtils));
+
+
+            scheduleReconnector();
+
+
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("Unexpected message creating game: " + e.getMessage());
         }
+    }
+
+    private void scheduleReconnector() {
+        TimerTask task = new TimerTask() {
+            public void run() {
+                authUtils.getClient();
+            }
+        };
+        reconnectionTimer = new Timer("ReconnectionTimer");
+
+        reconnectionTimer.schedule(task, 2000L, 2000L);
     }
 
 
@@ -109,9 +127,9 @@ public class TheOtherWorldsGame extends BaseGame {
             worldEntityUpdates.forEach(update -> {
                 WorldEntity entity = worldEntities.get(update.getId());
                 if (entity == null) {
-                    worldEntities.put(update.getId(), update.generateWorldEntity(clientWorld));
-                } else {
-                    WorldEntityUpdate.applyUpdate(update, entity);
+                    worldEntities.put(update.getId(), update.generateBrandWorldEntity(clientWorld)); }
+                else {
+                    worldEntities.put(update.getId(), WorldEntityUpdate.applyUpdate(update, entity));
                 }
             });
             worldEntityUpdates.clear();

@@ -52,7 +52,7 @@ public class WorldEntityUpdate {
         this.spriteName = Optional.of(worldEntity.getSpriteName());
     }
 
-    public WorldEntity generateWorldEntity(World world) {
+    public WorldEntity generateBrandWorldEntity(World world) {
         return new WorldEntity(
                 id,
                 world,
@@ -65,6 +65,23 @@ public class WorldEntityUpdate {
                 restitution.get(),
                 angle.get(),
                 spriteName.get()
+        );
+    }
+
+
+    public WorldEntity generateWorldEntityFromUpdateAndExisting(WorldEntity entity) {
+        return new WorldEntity(
+                id,
+                entity.getBody().getWorld(),
+                x.orElse(entity.getBody().getPosition().x),
+                y.orElse(entity.getBody().getPosition().y),
+                width.orElse(entity.getWidth()),
+                height.orElse(entity.getHeight()),
+                density.orElse(entity.getFixture().getDensity()),
+                friction.orElse(entity.getFixture().getFriction()),
+                restitution.orElse(entity.getFixture().getRestitution()),
+                angle.orElse(entity.getAngle()),
+                spriteName.orElse(entity.getSpriteName())
         );
     }
 
@@ -124,33 +141,35 @@ public class WorldEntityUpdate {
     }
 
 
-    public static void applyUpdate(WorldEntityUpdate update, WorldEntity entity) {
+    public static WorldEntity applyUpdate(WorldEntityUpdate update, WorldEntity entity) {
 
         if (!update.id.equals(entity.getId())) {
             throw new RuntimeException("Wrong update application for entities: " + update.id + " to " + entity.getId());
         }
 
-        update.x.ifPresent(value -> entity.getBody().getPosition().x = value);
-        update.y.ifPresent(value -> entity.getBody().getPosition().y = value);
+        return update.generateWorldEntityFromUpdateAndExisting(entity);
 
-        update.width.ifPresent(entity::setWidth);
-        update.height.ifPresent(entity::setHeight);
-
-        update.linearVelocity.ifPresent(entity::setLinearVelocity);
-        update.angularVelocity.ifPresent(entity::setAngularVelocity);
-
-        update.linearDampening.ifPresent(entity::setLinearDampening);
-        update.angularDampening.ifPresent(entity::setAngularDampening);
-
-        update.width.ifPresent(entity::setWidth);
-        update.height.ifPresent(entity::setHeight);
-
-
-        update.density.ifPresent(value -> entity.getFixture().setDensity(value));
-        update.friction.ifPresent(value -> entity.getFixture().setFriction(value));
-        update.restitution.ifPresent(value -> entity.getFixture().setRestitution(value));
-        update.angle.ifPresent(entity::setAngle);
-        update.spriteName.ifPresent(entity::setSpriteName);
+//        update.x.ifPresent(value -> entity.getBody().getPosition().x = value);
+//        update.y.ifPresent(value -> entity.getBody().getPosition().y = value);
+//
+//        update.width.ifPresent(entity::setWidth);
+//        update.height.ifPresent(entity::setHeight);
+//
+//        update.linearVelocity.ifPresent(entity::setLinearVelocity);
+//        update.angularVelocity.ifPresent(entity::setAngularVelocity);
+//
+//        update.linearDampening.ifPresent(entity::setLinearDampening);
+//        update.angularDampening.ifPresent(entity::setAngularDampening);
+//
+//        update.width.ifPresent(entity::setWidth);
+//        update.height.ifPresent(entity::setHeight);
+//
+//
+//        update.density.ifPresent(value -> entity.getFixture().setDensity(value));
+//        update.friction.ifPresent(value -> entity.getFixture().setFriction(value));
+//        update.restitution.ifPresent(value -> entity.getFixture().setRestitution(value));
+//        update.angle.ifPresent(entity::setAngle);
+//        update.spriteName.ifPresent(entity::setSpriteName);
 
 
     }
