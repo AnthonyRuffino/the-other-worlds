@@ -3,6 +3,8 @@ package io.blocktyper.theotherworlds.server.world;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
 
+import java.util.Map;
+
 public class WorldEntity {
 
     private String id;
@@ -17,9 +19,16 @@ public class WorldEntity {
     private float angularDampening;
     private float angle;
 
+    public static Map<Integer, BodyDef.BodyType> BODY_TYPES = Map.of(
+            0, BodyDef.BodyType.StaticBody,
+            1, BodyDef.BodyType.KinematicBody,
+            2, BodyDef.BodyType.DynamicBody
+    );
+
 
     public WorldEntity(
             String id,
+            int bodyType,
             World world,
             float x,
             float y,
@@ -34,7 +43,7 @@ public class WorldEntity {
         this.id = id;
 
         BodyDef bodyDef = new BodyDef();
-        bodyDef.type = BodyDef.BodyType.DynamicBody;
+        bodyDef.type = BODY_TYPES.get(bodyType);
         bodyDef.position.set(x, y);
         this.body = world.createBody(bodyDef);
 
@@ -59,6 +68,7 @@ public class WorldEntity {
 
         this.spriteName = spriteName;
     }
+
 
     public String getId() {
         return id;

@@ -31,10 +31,9 @@ public class ServerListener extends Listener {
     }
 
     private void handleMissingWorldEntities(Connection connection, MissingWorldEntities object) {
-        server.getCurrentWorldEntityStates();
         connection.sendTCP(
                 new WorldEntityUpdates(
-                        server.getCurrentWorldEntityStates(object.getMissingEntities())
+                        server.getDynamicEntitiesAsUpdates(object.getMissingEntities())
                                 .values().parallelStream()
                                 .collect(Collectors.toList())
                 ).setMissing(true)
@@ -77,7 +76,7 @@ public class ServerListener extends Listener {
             response.newUser = false;
             response.message = "empty";
         } else {
-            System.out.println(request.username);
+            System.out.println("user connected: " + request.username);
 
             String publicKeyPath = server.USER_DATA_DIRECTORY + request.username + "/id_rsa.pub";
 

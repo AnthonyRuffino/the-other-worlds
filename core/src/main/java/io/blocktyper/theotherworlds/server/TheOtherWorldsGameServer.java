@@ -2,6 +2,7 @@ package io.blocktyper.theotherworlds.server;
 
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
+import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.World;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryonet.Connection;
@@ -37,10 +38,11 @@ public class TheOtherWorldsGameServer {
     Kryo kryo;
 
 
-    private Map<String, WorldEntity> worldEntities = new ConcurrentHashMap();
+    private Map<String, WorldEntity> staticEntities = new ConcurrentHashMap();
+    private Map<String, WorldEntity> dynamicEntities = new ConcurrentHashMap();
 
 
-    public static float GRAVITY = 0f;
+    public static float GRAVITY = -1000f;
     public static float TARGET_DELTA = 1f / 60f;
     private float accumulator = 0;
     private float TARGET_ACCUMULATOR = TARGET_DELTA / 10f;
@@ -56,6 +58,23 @@ public class TheOtherWorldsGameServer {
         try {
 
             world = new World(new Vector2(0, GRAVITY), true);
+
+
+            staticEntities.put("floor_01",
+                    new WorldEntity(
+                            "floor_01",
+                            BodyDef.BodyType.StaticBody.getValue(),
+                            world,
+                            -1000,
+                            -2000,
+                            10000,
+                            500,
+                            tick,
+                            tick,
+                            tick,
+                            tick,
+                            "sun.jpg"
+                    ));
 
             server = new Server();
             kryo = server.getKryo();
@@ -100,35 +119,40 @@ public class TheOtherWorldsGameServer {
         return delta_time;
     }
 
+    public Map<String, WorldEntity> getStaticEntities() {
+        return staticEntities;
+    }
+
     private void tick() {
 
         tick++;
         long delta_time = getDeltaTime();
 
-        if (tick % 20 == 0) {
+        if (tick % 2 == 0) {
             //System.out.println("entity");
 
             String entityId = "e_" + tick;
 
-            worldEntities.put(
+            dynamicEntities.put(
                     entityId,
                     new WorldEntity(
                             entityId,
+                            BodyDef.BodyType.DynamicBody.getValue(),
                             world,
                             (tick * (tick / 4)),
                             (tick * (tick / 4)),
-                            tick * (tick / 4),
-                            tick * (tick / 4),
+                            100,
+                            100,
                             tick,
                             tick,
                             tick,
                             tick,
-                            "mo.png"
+                            "sun.jpg"
                     )
             );
         }
 
-        Map<String, WorldEntityUpdate> beforePhysicsState = getCurrentWorldEntityStates();
+        Map<String, WorldEntityUpdate> beforePhysicsState = getDynamicEntitiesAsUpdates();
 
         processPlayerMovementActions(delta_time);
         doPhysicsStep(delta_time);
@@ -174,8 +198,8 @@ public class TheOtherWorldsGameServer {
 
     @NotNull
     private List<WorldEntityUpdate> gatherUpdatesFromPhysics(Map<String, WorldEntityUpdate> beforePhysicsState) {
-        synchronized (worldEntities) {
-            return worldEntities.entrySet().stream().flatMap(
+        synchronized (dynamicEntities) {
+            return dynamicEntities.entrySet().stream().flatMap(
                     entry -> getUpdate(beforePhysicsState, entry).stream()
             ).collect(Collectors.toList());
         }
@@ -189,23 +213,34 @@ public class TheOtherWorldsGameServer {
     }
 
     @NotNull
-    Map<String, WorldEntityUpdate> getCurrentWorldEntityStates() {
-        return getCurrentWorldEntityStates(null);
+    Map<String, WorldEntityUpdate> getDynamicEntitiesAsUpdates() {
+        return getDynamicEntitiesAsUpdates(null);
     }
 
-    Map<String, WorldEntityUpdate> getCurrentWorldEntityStates(Set<String> filter) {
+    Map<String, WorldEntityUpdate> getDynamicEntitiesAsUpdates(Set<String> filter) {
         Predicate<WorldEntity> predicate = filter == null ? (e) -> true : (e) -> filter.contains(e.getId());
-        return worldEntities.values().stream()
+        return dynamicEntities.values().stream()
                 .filter(predicate)
                 .map(WorldEntityUpdate::new)
                 .collect(Collectors.toMap(WorldEntityUpdate::getId, value -> value));
     }
+
+    Map<String, WorldEntityUpdate> getStaticEntitiesAsUpdates() {
+        return staticEntities.values().stream()
+                .map(WorldEntityUpdate::new)
+                .collect(Collectors.toMap(WorldEntityUpdate::getId, value -> value));
+    }
+
 
 
     void handleConnect(Connection connection, String playerName) {
         playerMap.put(connection.getID(), playerName);
         playerNameMap.put(connection.getID(), playerName);
         connectionMap.put(connection.getID(), connection);
+
+        connection.sendTCP(new WorldEntityUpdates(
+                new ArrayList<>(getStaticEntitiesAsUpdates().values())
+        ).setMissing(true));
         //connection.sendTCP(new HudUpdates(getHudElementUpdates(playerName)));
     }
 

@@ -12,6 +12,7 @@ public class WorldEntityUpdate {
 
 
     private String id;
+    private Optional<Integer> bodyType;
     private Optional<Float> x;
     private Optional<Float> y;
     private Optional<Float> width;
@@ -37,6 +38,7 @@ public class WorldEntityUpdate {
 
     public WorldEntityUpdate(WorldEntity worldEntity) {
         this.id = worldEntity.getId();
+        this.bodyType = Optional.of(worldEntity.getBody().getType().getValue());
         this.x = Optional.of(worldEntity.getBody().getPosition().x);
         this.y = Optional.of(worldEntity.getBody().getPosition().y);
         this.width = Optional.of(worldEntity.getWidth());
@@ -52,9 +54,10 @@ public class WorldEntityUpdate {
         this.spriteName = Optional.of(worldEntity.getSpriteName());
     }
 
-    public WorldEntity generateBrandWorldEntity(World world) {
+    public WorldEntity generateBrandNewWorldEntity(World world) {
         return new WorldEntity(
                 id,
+                bodyType.get(),
                 world,
                 x.get(),
                 y.get(),
@@ -72,6 +75,7 @@ public class WorldEntityUpdate {
     public WorldEntity generateWorldEntityFromUpdateAndExisting(WorldEntity entity) {
         return new WorldEntity(
                 id,
+                bodyType.orElse(entity.getBody().getType().getValue()),
                 entity.getBody().getWorld(),
                 x.orElse(entity.getBody().getPosition().x),
                 y.orElse(entity.getBody().getPosition().y),
@@ -105,6 +109,7 @@ public class WorldEntityUpdate {
         }
 
         WorldEntityUpdate update = new WorldEntityUpdate(then.id);
+
         update.x = diff(then, now, WorldEntityUpdate::getX);
         update.y = diff(then, now, WorldEntityUpdate::getY);
         update.width = diff(then, now, WorldEntityUpdate::getWidth);
@@ -125,6 +130,9 @@ public class WorldEntityUpdate {
 
         Vector2 linearVelocity = now.linearVelocity.get();
         update.linearVelocity = Optional.ofNullable(then.linearVelocity.get().equals(linearVelocity) ? null : linearVelocity);
+
+        Integer nowBodyType = now.bodyType.get();
+        update.bodyType = Optional.ofNullable(then.bodyType.get().equals(nowBodyType) ? null : nowBodyType);
 
         return Optional.ofNullable(
                 (

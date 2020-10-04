@@ -127,7 +127,7 @@ public class TheOtherWorldsGame extends BaseGame {
             worldEntityUpdates.forEach(update -> {
                 WorldEntity entity = worldEntities.get(update.getId());
                 if (entity == null) {
-                    worldEntities.put(update.getId(), update.generateBrandWorldEntity(clientWorld)); }
+                    worldEntities.put(update.getId(), update.generateBrandNewWorldEntity(clientWorld)); }
                 else {
                     worldEntities.put(update.getId(), WorldEntityUpdate.applyUpdate(update, entity));
                 }
@@ -155,11 +155,18 @@ public class TheOtherWorldsGame extends BaseGame {
         spriteBatch.begin();
 
 
+
+        /*
+        Sprite sprite = new Sprite(textureStretched, Math.round(width), Math.round(height));
+        sprite.setX(x-(width/2));
+        sprite.setY(y-(height/2));
+         */
+
         //draw all world entities
         worldEntities.forEach((key, entity) -> {
             spriteBatch.draw(createSpriteIfNeeded(entity.getSpriteName()),
-                    entity.getBody().getPosition().x,
-                    entity.getBody().getPosition().y,
+                    entity.getBody().getPosition().x - (entity.getWidth()/2),
+                    entity.getBody().getPosition().y- (entity.getHeight()/2),
                     entity.getWidth(),
                     entity.getHeight()
             );
