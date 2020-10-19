@@ -22,12 +22,14 @@ public class AuthUtils {
     Client client;
     KeyPair keyPair;
     String username;
+    String host;
     Consumer<Boolean> postReconnect;
 
 
-    public AuthUtils(TheOtherWorldsGame game, Consumer<Boolean> postReconnect) {
+    public AuthUtils(TheOtherWorldsGame game, Consumer<Boolean> postReconnect, String host) {
         this.game = game;
         this.postReconnect = postReconnect;
+        this.host = host;
     }
 
     public LoginRequest loginRequest(String username, byte[] publicKey, PrivateKey privateKey) {
@@ -59,7 +61,7 @@ public class AuthUtils {
         KryoUtils.registerClasses(kryo);
         client.start();
         try {
-            client.connect(5000, "localhost", 54555, 54777);
+            client.connect(5000, host, 54555, 54777);
         } catch (Exception ex) {
             System.out.println("Unable to connect: " + ex);
             ex.printStackTrace();

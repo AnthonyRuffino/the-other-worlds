@@ -27,6 +27,7 @@ public class KryoUtils {
         kryo.register(WorldEntityUpdates.class);
         kryo.register(WorldEntityUpdate.class);
         kryo.register(MissingWorldEntities.class);
+        kryo.register(WorldEntityRemovals.class);
 
         //User interaction
         kryo.register(PerformActionRequest.class);

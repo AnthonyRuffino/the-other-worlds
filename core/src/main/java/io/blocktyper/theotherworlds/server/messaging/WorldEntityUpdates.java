@@ -35,10 +35,4 @@ public class WorldEntityUpdates {
         this.missing = missing;
         return this;
     }
-
-    public void send(Consumer<WorldEntityUpdates> send) {
-        if (!updates.isEmpty()) {
-            send.accept(this);
-        }
-    }
 }

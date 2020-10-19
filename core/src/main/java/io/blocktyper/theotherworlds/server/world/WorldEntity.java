@@ -19,6 +19,8 @@ public class WorldEntity {
     private float angularDampening;
     private float angle;
 
+    private Long deathTick;
+
     public static Map<Integer, BodyDef.BodyType> BODY_TYPES = Map.of(
             0, BodyDef.BodyType.StaticBody,
             1, BodyDef.BodyType.KinematicBody,
@@ -166,6 +168,15 @@ public class WorldEntity {
 
     public WorldEntity setAngularDampening(float angularDampening) {
         this.angularDampening = angularDampening;
+        return this;
+    }
+
+    public Long getDeathTick() {
+        return deathTick;
+    }
+
+    public WorldEntity setDeathTick(Long deathTick) {
+        this.deathTick = deathTick;
         return this;
     }
 }

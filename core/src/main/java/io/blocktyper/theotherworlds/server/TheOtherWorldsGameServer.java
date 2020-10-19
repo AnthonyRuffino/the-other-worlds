@@ -8,6 +8,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Server;
 import io.blocktyper.theotherworlds.server.messaging.KryoUtils;
+import io.blocktyper.theotherworlds.server.messaging.WorldEntityRemovals;
 import io.blocktyper.theotherworlds.server.messaging.WorldEntityUpdates;
 import io.blocktyper.theotherworlds.server.world.WorldEntity;
 import io.blocktyper.theotherworlds.server.world.WorldEntityUpdate;
@@ -15,7 +16,10 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -128,7 +132,7 @@ public class TheOtherWorldsGameServer {
         tick++;
         long delta_time = getDeltaTime();
 
-        if (tick % 2 == 0) {
+        if (tick % 2 == 0 && tick < 100000) {
             //System.out.println("entity");
 
             String entityId = "e_" + tick;
@@ -139,8 +143,8 @@ public class TheOtherWorldsGameServer {
                             entityId,
                             BodyDef.BodyType.DynamicBody.getValue(),
                             world,
-                            (tick * (tick / 4)),
-                            (tick * (tick / 4)),
+                            0,
+                            1000,//(tick * (tick / 4)),
                             100,
                             100,
                             tick,
@@ -148,17 +152,42 @@ public class TheOtherWorldsGameServer {
                             tick,
                             tick,
                             "sun.jpg"
-                    )
+                    ).setDeathTick(tick + 100)
             );
         }
+
+
+        List<String> removals = new ArrayList<>();
+
+
+        List<String> removedEntityIds = dynamicEntities.keySet().stream()
+                .map(entityId -> dynamicEntities.get(entityId))
+                .filter(entity -> entity.getDeathTick() != null && entity.getDeathTick() < tick)
+                .map(entity -> {
+                    world.destroyBody(entity.getBody());
+                    dynamicEntities.remove(entity.getId());
+                    return entity.getId();
+                })
+                .collect(Collectors.toList());
+
+        removedEntityIds.forEach(dynamicEntities::remove);
+
+        sendTCPToPlayers(
+                () -> removedEntityIds,
+                WorldEntityRemovals::new,
+                BATCH_SIZE
+        );
 
         Map<String, WorldEntityUpdate> beforePhysicsState = getDynamicEntitiesAsUpdates();
 
         processPlayerMovementActions(delta_time);
         doPhysicsStep(delta_time);
 
-        new WorldEntityUpdates(gatherUpdatesFromPhysics(beforePhysicsState))
-                .send(this::sendUpdatesToPlayers);
+        sendUDPToPlayers(
+                () -> gatherUpdatesFromPhysics(beforePhysicsState),
+                WorldEntityUpdates::new,
+                BATCH_SIZE
+        );
 
 
         //applyNewPlayerPositions();
@@ -168,33 +197,53 @@ public class TheOtherWorldsGameServer {
         //sendUDP updates
     }
 
-    private synchronized void sendUpdatesToPlayers(WorldEntityUpdates worldEntityUpdates) {
+    private synchronized <T> void sendUDPToPlayers(Supplier<List<T>> supplier,
+                                                   Function<List<T>, Object> subListAcceptor,
+                                                   int batchSize) {
+
+        sendToPlayers(supplier, subListAcceptor, batchSize, Connection::sendUDP);
+    }
+
+    private synchronized <T> void sendTCPToPlayers(Supplier<List<T>> supplier,
+                                                   Function<List<T>, Object> subListAcceptor,
+                                                   int batchSize) {
+
+        sendToPlayers(supplier, subListAcceptor, batchSize, Connection::sendTCP);
+    }
+
+    private synchronized <T> void sendToPlayers(Supplier<List<T>> supplier,
+                                                Function<List<T>, Object> subListAcceptor,
+                                                int batchSize,
+                                                BiConsumer<Connection, Object> dispatchFunction) {
         try {
             synchronized (connectionMap) {
-                List<WorldEntityUpdate> data = worldEntityUpdates.getUpdates();
+                List<T> data = supplier.get();
+                if (data == null || data.isEmpty()) {
+                    return;
+                }
                 int size = data.size();
                 Set<Integer> connectionsToRemove = new HashSet<>();
-                IntStream.range(0, (worldEntityUpdates.getUpdates().size() + BATCH_SIZE - 1) / BATCH_SIZE)
-                        .mapToObj(i -> data.subList(i * BATCH_SIZE, Math.min(size, (i + 1) * BATCH_SIZE)))
+                IntStream.range(0, (data.size() + batchSize - 1) / batchSize)
+                        .mapToObj(i -> data.subList(i * batchSize, Math.min(size, (i + 1) * batchSize)))
                         .forEach(batch -> connectionMap.values()
                                 .forEach(
                                         connection -> {
                                             try {
-                                                connection.sendUDP(new WorldEntityUpdates(new ArrayList<>(batch)));
+                                                dispatchFunction.accept(connection, subListAcceptor.apply(new ArrayList<>(batch)));
                                             } catch (Exception e) {
-                                                System.out.println("Unexpected exception sending updates to player: " + e.getMessage() + ". " + connection.getID());
+                                                System.out.println("Unexpected exception sending data to player: " + e.getMessage() + ". " + connection.getID());
                                                 connectionsToRemove.add(connection.getID());
                                             }
-
                                         }
                                 )
                         );
-                connectionsToRemove.forEach(id -> connectionMap.remove(id));
+                connectionsToRemove.forEach(connectionMap::remove);
             }
         } catch (Exception e) {
-            System.out.println("Unexpected exception sending updates to players: " + e.getMessage());
+            System.out.println("Unexpected exception sending data to players: " + e.getMessage());
         }
     }
+
 
     @NotNull
     private List<WorldEntityUpdate> gatherUpdatesFromPhysics(Map<String, WorldEntityUpdate> beforePhysicsState) {
@@ -230,7 +279,6 @@ public class TheOtherWorldsGameServer {
                 .map(WorldEntityUpdate::new)
                 .collect(Collectors.toMap(WorldEntityUpdate::getId, value -> value));
     }
-
 
 
     void handleConnect(Connection connection, String playerName) {

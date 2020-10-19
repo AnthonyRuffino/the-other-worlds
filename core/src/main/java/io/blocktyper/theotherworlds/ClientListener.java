@@ -7,6 +7,7 @@ import com.esotericsoftware.kryonet.Listener;
 import io.blocktyper.theotherworlds.server.auth.AuthUtils;
 import io.blocktyper.theotherworlds.server.messaging.ConnectResponse;
 import io.blocktyper.theotherworlds.server.messaging.MissingWorldEntities;
+import io.blocktyper.theotherworlds.server.messaging.WorldEntityRemovals;
 import io.blocktyper.theotherworlds.server.messaging.WorldEntityUpdates;
 
 import java.util.List;
@@ -33,6 +34,9 @@ public class ClientListener extends Listener {
             if (!missingEntities.isEmpty()) {
                 authUtils.getClient().sendTCP(new MissingWorldEntities(missingEntities));
             }
+        } if (object instanceof WorldEntityRemovals) {
+            WorldEntityRemovals worldEntityRemovals = (WorldEntityRemovals) object;
+            game.addWorldEntityRemovals(worldEntityRemovals.getRemovals());
         } else if (object instanceof ConnectResponse) {
             ConnectResponse response = (ConnectResponse) object;
             System.out.println("Connect status: " + response.success);

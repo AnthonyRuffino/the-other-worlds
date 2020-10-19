@@ -41,6 +41,7 @@ public class TheOtherWorldsGame extends BaseGame {
 
     private final Map<String, Sprite> spriteMap = new ConcurrentHashMap<>();
     private final List<WorldEntityUpdate> worldEntityUpdates = new ArrayList<>();
+    private final List<String> worldEntityRemovals = new ArrayList<>();
     private final Map<String, WorldEntity> worldEntities = new ConcurrentHashMap<>();
 
     TheOtherWorldsGameServer gameServer;
@@ -69,7 +70,8 @@ public class TheOtherWorldsGame extends BaseGame {
 
             font = new BitmapFont();
 
-            authUtils = new AuthUtils(this, this::postReconnect);
+            String host = config.host == null ? "localhost" : config.host;
+            authUtils = new AuthUtils(this, this::postReconnect, host);
             authUtils.setUpClient();
             authUtils.promptLogin(Gdx.input, USER_DATA_DIRECTORY);
 
@@ -110,6 +112,12 @@ public class TheOtherWorldsGame extends BaseGame {
         }
     }
 
+    public void addWorldEntityRemovals(List<String> removals) {
+        synchronized (this.worldEntityRemovals) {
+            worldEntityRemovals.addAll(removals);
+        }
+    }
+
     void postReconnect(boolean success) {
         //ask for updates and removals
     }
@@ -127,8 +135,8 @@ public class TheOtherWorldsGame extends BaseGame {
             worldEntityUpdates.forEach(update -> {
                 WorldEntity entity = worldEntities.get(update.getId());
                 if (entity == null) {
-                    worldEntities.put(update.getId(), update.generateBrandNewWorldEntity(clientWorld)); }
-                else {
+                    worldEntities.put(update.getId(), update.generateBrandNewWorldEntity(clientWorld));
+                } else {
                     worldEntities.put(update.getId(), WorldEntityUpdate.applyUpdate(update, entity));
                 }
             });
@@ -137,6 +145,12 @@ public class TheOtherWorldsGame extends BaseGame {
 
 
         //do world removals
+        synchronized (worldEntityRemovals) {
+            worldEntityRemovals.forEach(worldEntityId -> {
+                worldEntities.remove(worldEntityId);
+            });
+            worldEntityRemovals.clear();
+        }
 
 
         //rotate sprite
@@ -162,11 +176,12 @@ public class TheOtherWorldsGame extends BaseGame {
         sprite.setY(y-(height/2));
          */
 
+
         //draw all world entities
         worldEntities.forEach((key, entity) -> {
             spriteBatch.draw(createSpriteIfNeeded(entity.getSpriteName()),
-                    entity.getBody().getPosition().x - (entity.getWidth()/2),
-                    entity.getBody().getPosition().y- (entity.getHeight()/2),
+                    entity.getBody().getPosition().x - (entity.getWidth() / 2),
+                    entity.getBody().getPosition().y - (entity.getHeight() / 2),
                     entity.getWidth(),
                     entity.getHeight()
             );
@@ -215,5 +230,4 @@ public class TheOtherWorldsGame extends BaseGame {
     public void dispose() {
 
     }
-
 }
