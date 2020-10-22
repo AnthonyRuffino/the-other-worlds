@@ -9,10 +9,13 @@ import com.badlogic.gdx.physics.box2d.World;
 import io.blocktyper.theotherworlds.config.GameConfig;
 import io.blocktyper.theotherworlds.server.TheOtherWorldsGameServer;
 import io.blocktyper.theotherworlds.server.auth.AuthUtils;
+import io.blocktyper.theotherworlds.server.messaging.ImageRequest;
 import io.blocktyper.theotherworlds.server.world.WorldEntity;
 import io.blocktyper.theotherworlds.server.world.WorldEntityUpdate;
 import io.blocktyper.theotherworlds.visible.RelativeState;
 import io.blocktyper.theotherworlds.visible.SpriteUtils;
+import org.jetbrains.annotations.NotNull;
+import org.lwjgl.Sys;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,9 +27,11 @@ import java.util.stream.Stream;
 //https://github.com/EsotericSoftware/kryonet
 public class TheOtherWorldsGame extends BaseGame {
 
+    public static String DATA_DIRECTORY = "./.data/";
+    public static String SERVERS_DIRECTORY = DATA_DIRECTORY + "servers/";
+    public static String USER_DATA_DIRECTORY = DATA_DIRECTORY + "users/";
 
-    public static String USER_DATA_DIRECTORY = "./.data/users/";
-
+    String host;
     World clientWorld;
     SpriteBatch spriteBatch;
     SpriteBatch hudBatch;
@@ -70,7 +75,7 @@ public class TheOtherWorldsGame extends BaseGame {
 
             font = new BitmapFont();
 
-            String host = config.host == null ? "localhost" : config.host;
+            host = config.host == null ? "localhost" : config.host;
             authUtils = new AuthUtils(this, this::postReconnect, host);
             authUtils.setUpClient();
             authUtils.promptLogin(Gdx.input, USER_DATA_DIRECTORY);
@@ -82,9 +87,9 @@ public class TheOtherWorldsGame extends BaseGame {
             scheduleReconnector();
 
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("Unexpected message creating game: " + e.getMessage());
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            System.out.println("Unexpected message creating game: " + ex.getMessage());
         }
     }
 
@@ -205,7 +210,36 @@ public class TheOtherWorldsGame extends BaseGame {
 
 
     private Sprite createSpriteIfNeeded(String spriteName) {
-        return spriteMap.computeIfAbsent(spriteName, (d) -> SpriteUtils.newSprite(spriteName));
+        if(spriteMap.containsKey(spriteName)) {
+            return spriteMap.get(spriteName);
+        }
+
+        if(Gdx.files.internal(spriteName).exists()) {
+            return tryLoadSprite(spriteName);
+        } else if(Gdx.files.internal(getServersDirectory() + spriteName).exists()) {
+            return tryLoadSprite(getServersDirectory() + spriteName);
+        }
+
+        authUtils.getClient().sendTCP(new ImageRequest().setName(spriteName));
+        return SpriteUtils.newSprite("loading.png");
+    }
+
+    @NotNull
+    public String getServersDirectory() {
+        return SERVERS_DIRECTORY + host + "/";
+    }
+
+    @NotNull
+    private Sprite tryLoadSprite(String spriteName) {
+        Sprite sprite;
+        try {
+            sprite = SpriteUtils.newSprite(spriteName);
+        } catch(Exception e) {
+            sprite = SpriteUtils.newSprite("missing.png");
+            System.out.println("Issue loading sprite: " + spriteName + ". Message: " + e.getMessage());
+        }
+        spriteMap.put(spriteName, sprite);
+        return sprite;
     }
 
     @Override

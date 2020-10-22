@@ -3,6 +3,7 @@ package io.blocktyper.theotherworlds.server;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Listener;
 import io.blocktyper.theotherworlds.config.FileUtils;
+import io.blocktyper.theotherworlds.plugin.PluginLoader;
 import io.blocktyper.theotherworlds.server.auth.KeyUtils;
 import io.blocktyper.theotherworlds.server.messaging.*;
 
@@ -27,7 +28,22 @@ public class ServerListener extends Listener {
             handlePerformActionRequest(connection, (PerformActionRequest) object);
         } else if (object instanceof MissingWorldEntities) {
             handleMissingWorldEntities(connection, (MissingWorldEntities) object);
+        } else if (object instanceof ImageRequest) {
+            handleImageRequest(connection, (ImageRequest) object);
         }
+    }
+
+    private void handleImageRequest(Connection connection, ImageRequest request) {
+
+        String fullPath = request.name;
+        String clientImageDirectory = PluginLoader.CLIENT_IMAGE_DIRECTORY;
+        String imageWithPluginName = fullPath.substring(fullPath.indexOf(clientImageDirectory) + clientImageDirectory.length());
+        int delimiterIndex = imageWithPluginName.indexOf("_");
+        String pluginName = imageWithPluginName.substring(0, delimiterIndex);
+        String imageName = imageWithPluginName.substring(delimiterIndex + 1);
+
+        byte[] imageBytes = FileUtils.getLocalFileBytes("plugins/" + pluginName + "/img/" + imageName);
+        connection.sendTCP(new ImageResponse().setName(fullPath).setBytes(imageBytes));
     }
 
     private void handleMissingWorldEntities(Connection connection, MissingWorldEntities object) {

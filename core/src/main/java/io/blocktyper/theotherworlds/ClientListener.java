@@ -1,18 +1,13 @@
 package io.blocktyper.theotherworlds;
 
 import com.badlogic.gdx.Gdx;
-import com.esotericsoftware.kryonet.Client;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Listener;
+import io.blocktyper.theotherworlds.config.FileUtils;
 import io.blocktyper.theotherworlds.server.auth.AuthUtils;
-import io.blocktyper.theotherworlds.server.messaging.ConnectResponse;
-import io.blocktyper.theotherworlds.server.messaging.MissingWorldEntities;
-import io.blocktyper.theotherworlds.server.messaging.WorldEntityRemovals;
-import io.blocktyper.theotherworlds.server.messaging.WorldEntityUpdates;
+import io.blocktyper.theotherworlds.server.messaging.*;
 
-import java.util.List;
 import java.util.Set;
-import java.util.function.Supplier;
 
 public class ClientListener extends Listener {
 
@@ -34,7 +29,7 @@ public class ClientListener extends Listener {
             if (!missingEntities.isEmpty()) {
                 authUtils.getClient().sendTCP(new MissingWorldEntities(missingEntities));
             }
-        } if (object instanceof WorldEntityRemovals) {
+        } else if (object instanceof WorldEntityRemovals) {
             WorldEntityRemovals worldEntityRemovals = (WorldEntityRemovals) object;
             game.addWorldEntityRemovals(worldEntityRemovals.getRemovals());
         } else if (object instanceof ConnectResponse) {
@@ -52,6 +47,9 @@ public class ClientListener extends Listener {
             } else {
                 //game.playerInstantiation = response.playerUpdate;
             }
+        } else if (object instanceof ImageResponse) {
+            ImageResponse imageResponse = (ImageResponse) object;
+            FileUtils.writeFile(game.getServersDirectory() + imageResponse.name, imageResponse.bytes);
         }
     }
 }

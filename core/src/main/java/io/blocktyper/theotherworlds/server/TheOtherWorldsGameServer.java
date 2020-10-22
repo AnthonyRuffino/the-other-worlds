@@ -2,11 +2,13 @@ package io.blocktyper.theotherworlds.server;
 
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
-import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.World;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Server;
+import io.blocktyper.theotherworlds.plugin.PluginLoader;
+import io.blocktyper.theotherworlds.plugin.PluginLoaderImpl;
+import io.blocktyper.theotherworlds.plugin.PluginServer;
 import io.blocktyper.theotherworlds.server.messaging.KryoUtils;
 import io.blocktyper.theotherworlds.server.messaging.WorldEntityRemovals;
 import io.blocktyper.theotherworlds.server.messaging.WorldEntityUpdates;
@@ -22,14 +24,17 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
-public class TheOtherWorldsGameServer {
+public class TheOtherWorldsGameServer implements PluginServer {
 
-    public static String USER_DATA_DIRECTORY = "./.data/server/users/";
+    public static String CWD = System.getProperty("user.dir");
+    public static String USER_DATA_DIRECTORY = CWD + "/.data/server/users/";
 
     private long tick = 0l;
     private Timer timer;
 
+    PluginLoader pluginLoader;
     World world;
 
     Map<Integer, Set<String>> keysPressedPerConnection = new ConcurrentHashMap<>();
@@ -46,10 +51,11 @@ public class TheOtherWorldsGameServer {
     private Map<String, WorldEntity> dynamicEntities = new ConcurrentHashMap();
 
 
+    public static final long TICK_DELAY_MS = 30l;
     public static float GRAVITY = -1000f;
-    public static float TARGET_DELTA = 1f / 60f;
+    public static float TARGET_DELTA = 1f / (1000/TICK_DELAY_MS);
     private float accumulator = 0;
-    private float TARGET_ACCUMULATOR = TARGET_DELTA / 10f;
+    private float TARGET_ACCUMULATOR = TARGET_DELTA / ((30f/50f)*50L);
     long last_time = System.nanoTime();
 
 
@@ -62,23 +68,11 @@ public class TheOtherWorldsGameServer {
         try {
 
             world = new World(new Vector2(0, GRAVITY), true);
+            pluginLoader = new PluginLoaderImpl(CWD + "/plugins", this, false);
 
 
-            staticEntities.put("floor_01",
-                    new WorldEntity(
-                            "floor_01",
-                            BodyDef.BodyType.StaticBody.getValue(),
-                            world,
-                            -1000,
-                            -2000,
-                            10000,
-                            500,
-                            tick,
-                            tick,
-                            tick,
-                            tick,
-                            "sun.jpg"
-                    ));
+            world.setContactListener(pluginLoader.getContactListener());
+            staticEntities.putAll(pluginLoader.getStaticWorldEntities());
 
             server = new Server();
             kryo = server.getKryo();
@@ -90,9 +84,9 @@ public class TheOtherWorldsGameServer {
 
             server.addListener(new ServerListener(this));
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("Unexpected exception on server start: " + e.getMessage());
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            System.out.println("Unexpected exception on server start: " + ex.getMessage());
         }
 
         TimerTask task = new TimerTask() {
@@ -100,12 +94,25 @@ public class TheOtherWorldsGameServer {
                 tick();
             }
         };
-        timer = new Timer("Timer");
+        timer = new Timer("TickTimer");
 
-        long delay = 50L;
-        timer.schedule(task, delay, delay);
+        timer.schedule(task, TICK_DELAY_MS, TICK_DELAY_MS);
     }
 
+    @Override
+    public long getTick() {
+        return tick;
+    }
+
+    @Override
+    public long getTickDelayMillis() {
+        return TICK_DELAY_MS;
+    }
+
+    @Override
+    public World getWorld() {
+        return world;
+    }
 
     private void doPhysicsStep(float deltaTime) {
         float frameTime = Math.min(deltaTime, 0.25f);
@@ -123,60 +130,15 @@ public class TheOtherWorldsGameServer {
         return delta_time;
     }
 
-    public Map<String, WorldEntity> getStaticEntities() {
-        return staticEntities;
-    }
-
     private void tick() {
 
         tick++;
         long delta_time = getDeltaTime();
 
-        if (tick % 2 == 0 && tick < 100000) {
-            //System.out.println("entity");
+        Map<String, WorldEntity> newWorldEntities = pluginLoader.getNewWorldEntities();
+        dynamicEntities.putAll(newWorldEntities);
 
-            String entityId = "e_" + tick;
-
-            dynamicEntities.put(
-                    entityId,
-                    new WorldEntity(
-                            entityId,
-                            BodyDef.BodyType.DynamicBody.getValue(),
-                            world,
-                            0,
-                            1000,//(tick * (tick / 4)),
-                            100,
-                            100,
-                            tick,
-                            tick,
-                            tick,
-                            tick,
-                            "sun.jpg"
-                    ).setDeathTick(tick + 100)
-            );
-        }
-
-
-        List<String> removals = new ArrayList<>();
-
-
-        List<String> removedEntityIds = dynamicEntities.keySet().stream()
-                .map(entityId -> dynamicEntities.get(entityId))
-                .filter(entity -> entity.getDeathTick() != null && entity.getDeathTick() < tick)
-                .map(entity -> {
-                    world.destroyBody(entity.getBody());
-                    dynamicEntities.remove(entity.getId());
-                    return entity.getId();
-                })
-                .collect(Collectors.toList());
-
-        removedEntityIds.forEach(dynamicEntities::remove);
-
-        sendTCPToPlayers(
-                () -> removedEntityIds,
-                WorldEntityRemovals::new,
-                BATCH_SIZE
-        );
+        doAllRemovals();
 
         Map<String, WorldEntityUpdate> beforePhysicsState = getDynamicEntitiesAsUpdates();
 
@@ -195,6 +157,30 @@ public class TheOtherWorldsGameServer {
 
         //sendTCP updates
         //sendUDP updates
+    }
+
+    private void doAllRemovals() {
+        Stream<String> expiredEntityIds = dynamicEntities.keySet().stream()
+                .map(entityId -> dynamicEntities.get(entityId))
+                .filter(entity -> entity.getDeathTick() != null && entity.getDeathTick() < tick)
+                .map(this::removeEntity);
+
+        Stream<String> deadEntityIds = dynamicEntities.keySet().stream()
+                .map(entityId -> dynamicEntities.get(entityId))
+                .filter(WorldEntity::isDead)
+                .map(this::removeEntity);
+
+        sendTCPToPlayers(
+                () -> Stream.concat(expiredEntityIds, deadEntityIds).collect(Collectors.toList()),
+                WorldEntityRemovals::new,
+                BATCH_SIZE
+        );
+    }
+
+    private String removeEntity(WorldEntity entity) {
+        world.destroyBody(entity.getBody());
+        dynamicEntities.remove(entity.getId());
+        return entity.getId();
     }
 
     private synchronized <T> void sendUDPToPlayers(Supplier<List<T>> supplier,
@@ -230,8 +216,8 @@ public class TheOtherWorldsGameServer {
                                         connection -> {
                                             try {
                                                 dispatchFunction.accept(connection, subListAcceptor.apply(new ArrayList<>(batch)));
-                                            } catch (Exception e) {
-                                                System.out.println("Unexpected exception sending data to player: " + e.getMessage() + ". " + connection.getID());
+                                            } catch (Exception ex) {
+                                                System.out.println("Unexpected exception sending data to player: " + ex.getMessage() + ". " + connection.getID());
                                                 connectionsToRemove.add(connection.getID());
                                             }
                                         }
@@ -239,8 +225,8 @@ public class TheOtherWorldsGameServer {
                         );
                 connectionsToRemove.forEach(connectionMap::remove);
             }
-        } catch (Exception e) {
-            System.out.println("Unexpected exception sending data to players: " + e.getMessage());
+        } catch (Exception ex) {
+            System.out.println("Unexpected exception sending data to players: " + ex.getMessage());
         }
     }
 

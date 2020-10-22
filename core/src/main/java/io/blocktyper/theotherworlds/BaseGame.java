@@ -16,18 +16,18 @@ public class BaseGame extends ApplicationAdapter {
 
     @Override
     public void create() {
-        heightUponCreate = h();
-        widthUponCreate = w();
+        heightUponCreate = HEIGHT();
+        widthUponCreate = WIDTH();
 
         camera = new OrthographicCamera(widthUponCreate, heightUponCreate);
-        camera.zoom = 1;
+        camera.zoom = 10;
     }
 
     @Override
     public void resize(int width, int height) {
         if (originalWidthForResizing == null || originalHeightForResizing == null) {
-            originalWidthForResizing = w();
-            originalHeightForResizing = h();
+            originalWidthForResizing = WIDTH();
+            originalHeightForResizing = HEIGHT();
         }
         super.resize(width, height);
     }
@@ -38,14 +38,6 @@ public class BaseGame extends ApplicationAdapter {
         super.render();
         Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-    }
-
-    protected final int h() {
-        return HEIGHT();
-    }
-
-    protected final int w() {
-        return WIDTH();
     }
 
     public static int HEIGHT() {

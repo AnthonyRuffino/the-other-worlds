@@ -31,27 +31,39 @@ public class FileUtils {
         try {
             String configString = FileUtils.getResourceAsString(defaultFromResources, classLoader);
 
-            JsonNode defaults = OBJECT_MAPPER.readTree(configString);
+            JsonNode defaults = getJsonNodeFromRawString(configString);
 
             final JsonNode finalConfig;
             String localConfigString = FileUtils.getLocalFileString(localOverride);
             if (localConfigString != null && !localConfigString.isBlank()) {
-                JsonNode overrides = OBJECT_MAPPER.readTree(localConfigString);
+                JsonNode overrides = getJsonNodeFromRawString(localConfigString);
                 finalConfig = OBJECT_MAPPER.readerForUpdating(defaults).readValue(overrides);
             } else {
                 finalConfig = defaults;
             }
 
             return OBJECT_MAPPER.treeToValue(finalConfig, RootConfig.class);
-        } catch (Exception e) {
-            throw new RuntimeException("Config issue: " + e.getMessage(), e);
+        } catch (Exception ex) {
+            throw new RuntimeException("Config issue: " + ex.getMessage(), ex);
+        }
+    }
+
+    public static JsonNode getJsonNodeFromRawString(String rawJsonString) throws RuntimeException {
+        try{
+            return OBJECT_MAPPER.readTree(rawJsonString);
+        } catch(Exception ex) {
+            System.out.println("Exception reading JsonNode from raw string: " + rawJsonString + " - Message: " + ex.getMessage());
+            ex.printStackTrace();
+            return null;
         }
     }
 
     public static byte[] getLocalFileBytes(String path) {
         try {
             return Files.readAllBytes(Paths.get(path));
-        } catch (Exception e) {
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            System.out.println("Exception getting local file bytes: " + ex.getMessage());
             return null;
         }
     }

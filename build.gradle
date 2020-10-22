@@ -35,6 +35,27 @@ allprojects {
     }
 }
 
+project(":plugin") {
+    apply plugin: "java-library"
+
+    def mainClassName = "io.blocktyper.theotherworlds.plugin.PluginExample"
+
+    jar {
+        manifest {
+            attributes "Main-Class": "$mainClassName"
+        }
+
+        from {
+            configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+        }
+    }
+
+    dependencies {
+        api "com.badlogicgames.gdx:gdx-box2d:$gdxVersion"
+        compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.2'
+    }
+}
+
 
 project(":desktop") {
     apply plugin: "java-library"
@@ -54,6 +75,7 @@ project(":desktop") {
 
     dependencies {
         implementation project(":core")
+        implementation project(":plugin")
         api "com.badlogicgames.gdx:gdx-backend-lwjgl:$gdxVersion"
         api "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
         api "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-desktop"
@@ -84,6 +106,7 @@ project(":core") {
 
 
     dependencies {
+        implementation project(":plugin")
         compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.2'
 
         compile group: 'com.esotericsoftware', name: 'kryonet', version: '2.22.0-RC1'

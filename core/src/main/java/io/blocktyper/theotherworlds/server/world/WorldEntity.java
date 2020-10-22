@@ -2,10 +2,11 @@ package io.blocktyper.theotherworlds.server.world;
 
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
+import io.blocktyper.theotherworlds.plugin.entities.Damageable;
 
 import java.util.Map;
 
-public class WorldEntity {
+public class WorldEntity implements Damageable {
 
     private String id;
     private Body body;
@@ -20,6 +21,7 @@ public class WorldEntity {
     private float angle;
 
     private Long deathTick;
+    private Integer health;
 
     public static Map<Integer, BodyDef.BodyType> BODY_TYPES = Map.of(
             0, BodyDef.BodyType.StaticBody,
@@ -69,6 +71,7 @@ public class WorldEntity {
         box.dispose();
 
         this.spriteName = spriteName;
+        this.body.setUserData(this);
     }
 
 
@@ -177,6 +180,26 @@ public class WorldEntity {
 
     public WorldEntity setDeathTick(Long deathTick) {
         this.deathTick = deathTick;
+        return this;
+    }
+
+    public Integer getHealth() {
+        return health;
+    }
+
+    public Integer changeHealth(int amount) {
+        if(health != null) {
+            health += amount;
+        }
+        return health;
+    }
+
+    public boolean isDead() {
+        return health != null && health <= 0;
+    }
+
+    public WorldEntity setHealth(Integer health) {
+        this.health = health;
         return this;
     }
 }
