@@ -35,8 +35,13 @@ public class ClientListener extends Listener {
         } else if (object instanceof ConnectResponse) {
             ConnectResponse response = (ConnectResponse) object;
             System.out.println("Connect status: " + response.success);
+            game.clearHudShapes();
+            if (response.captcha != null) {
+                game.addHudShapeUpdates(response.captcha);
+            }
+
             if (response.challenge != null) {
-                game.authUtils.login(null, response.challenge);
+                game.authUtils.login(null, response.challenge, null);
             } else if (!response.success) {
                 System.out.println(response.message);
                 game.authUtils.promptLogin(

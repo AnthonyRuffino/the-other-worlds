@@ -4,6 +4,7 @@ import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Listener;
 import io.blocktyper.theotherworlds.config.FileUtils;
 import io.blocktyper.theotherworlds.plugin.PluginLoader;
+import io.blocktyper.theotherworlds.server.auth.CaptchaUtils;
 import io.blocktyper.theotherworlds.server.auth.KeyUtils;
 import io.blocktyper.theotherworlds.server.messaging.*;
 
@@ -16,10 +17,12 @@ import java.util.stream.Collectors;
 public class ServerListener extends Listener {
 
 
+    private static final int CAPTCHA_EXPIRY_SECONDS = 60;
     private static final int CHALLENGE_EXPIRY_SECONDS = 10;
     private final TheOtherWorldsGameServer server;
 
     private Map<String, Map.Entry<String, Instant>> challenges = Collections.synchronizedMap(new HashMap<>());
+    private Map<String, Map.Entry<String, Instant>> newUserCaptcha = Collections.synchronizedMap(new HashMap<>());
 
     public ServerListener(TheOtherWorldsGameServer server) {
         this.server = server;
@@ -87,7 +90,7 @@ public class ServerListener extends Listener {
 
     private void handleLoginRequest(Connection connection, LoginRequest request) {
 
-        request.username = FileUtils.cleanFileName(request.username, false);
+        request.username = FileUtils.cleanFileName(request.username, false).toLowerCase();
 
         ConnectResponse response = new ConnectResponse();
         String freshestChallenge;
@@ -122,18 +125,28 @@ public class ServerListener extends Listener {
                 }
             } else if (request.publicKey != null) {
                 System.out.println("New user creation attempt: " + request.username);
-                FileUtils.writeFile(publicKeyPath, request.publicKey);
-                response.success = true;
-                response.message = "User created";
+
+                String captcha = request.captcha;
+                Map.Entry<String, Instant> existingCaptcha = newUserCaptcha.get(request.username);
+
+                if (existingCaptcha == null
+                        || captcha == null
+                        || !captcha.toLowerCase().equals(existingCaptcha.getKey().toLowerCase())
+                        || existingCaptcha.getValue().isBefore(Instant.now())
+                ) {
+                    System.out.println("Captcha failed: " + request.username);
+                    generateCaptchaResponse(request, response);
+                } else {
+                    FileUtils.writeFile(publicKeyPath, request.publicKey);
+                    response.success = true;
+                    response.message = "User created";
+                }
+
             } else {
                 System.out.println("New user creation request: " + request.username);
-                response.success = false;
-                response.newUser = true;
-                response.username = request.username;
-                response.message = "Create new user?";
+                generateCaptchaResponse(request, response);
             }
         }
-
 
         if (response.success) {
             response.username = request.username;
@@ -141,6 +154,16 @@ public class ServerListener extends Listener {
         }
 
         connection.sendTCP(response);
+    }
+
+    private void generateCaptchaResponse(LoginRequest request, ConnectResponse response) {
+        Map.Entry<String, List<? extends Drawable>> captcha = CaptchaUtils.getCaptcha();
+        newUserCaptcha.put(request.username, new AbstractMap.SimpleEntry<>(captcha.getKey(), Instant.now().plusSeconds(CAPTCHA_EXPIRY_SECONDS)));
+        response.captcha = captcha.getValue();
+        response.success = false;
+        response.newUser = true;
+        response.username = "";
+        response.message = "Captcha [1-9]";
     }
 
     private String getFreshestChallengeForUser(LoginRequest loginRequest) {
@@ -159,5 +182,4 @@ public class ServerListener extends Listener {
         }
         return null;
     }
-
 }

@@ -20,7 +20,7 @@ public class BaseGame extends ApplicationAdapter {
         widthUponCreate = WIDTH();
 
         camera = new OrthographicCamera(widthUponCreate, heightUponCreate);
-        camera.zoom = 10;
+        camera.zoom = 50;
     }
 
     @Override

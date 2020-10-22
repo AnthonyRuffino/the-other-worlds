@@ -1,21 +1,23 @@
 package io.blocktyper.theotherworlds;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.World;
 import io.blocktyper.theotherworlds.config.GameConfig;
 import io.blocktyper.theotherworlds.server.TheOtherWorldsGameServer;
 import io.blocktyper.theotherworlds.server.auth.AuthUtils;
+import io.blocktyper.theotherworlds.server.messaging.Drawable;
 import io.blocktyper.theotherworlds.server.messaging.ImageRequest;
 import io.blocktyper.theotherworlds.server.world.WorldEntity;
 import io.blocktyper.theotherworlds.server.world.WorldEntityUpdate;
 import io.blocktyper.theotherworlds.visible.RelativeState;
 import io.blocktyper.theotherworlds.visible.SpriteUtils;
 import org.jetbrains.annotations.NotNull;
-import org.lwjgl.Sys;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,8 +35,11 @@ public class TheOtherWorldsGame extends BaseGame {
 
     String host;
     World clientWorld;
-    SpriteBatch spriteBatch;
-    SpriteBatch hudBatch;
+    SpriteBatch worldSpriteBatch;
+
+    SpriteBatch hudSpriteBatch;
+    ShapeRenderer hudShapeRenderer;
+
     BitmapFont font;
 
     final GameConfig config;
@@ -45,9 +50,14 @@ public class TheOtherWorldsGame extends BaseGame {
 
 
     private final Map<String, Sprite> spriteMap = new ConcurrentHashMap<>();
+
     private final List<WorldEntityUpdate> worldEntityUpdates = new ArrayList<>();
     private final List<String> worldEntityRemovals = new ArrayList<>();
     private final Map<String, WorldEntity> worldEntities = new ConcurrentHashMap<>();
+
+    private final List<Drawable> hudShapeUpdates = new ArrayList<>();
+    private final Map<String, Drawable> hudShapes = new ConcurrentHashMap<>();
+    private final List<String> hudShapeRemovals = new ArrayList<>();
 
     TheOtherWorldsGameServer gameServer;
     AuthUtils authUtils;
@@ -70,8 +80,10 @@ public class TheOtherWorldsGame extends BaseGame {
         this.clientWorld = new World(new Vector2(0, -1000), true);
 
         try {
-            spriteBatch = new SpriteBatch();
-            hudBatch = new SpriteBatch();
+            worldSpriteBatch = new SpriteBatch();
+            hudSpriteBatch = new SpriteBatch();
+            hudShapeRenderer = new ShapeRenderer();
+            hudShapeRenderer.setColor(Color.WHITE);
 
             font = new BitmapFont();
 
@@ -80,12 +92,9 @@ public class TheOtherWorldsGame extends BaseGame {
             authUtils.setUpClient();
             authUtils.promptLogin(Gdx.input, USER_DATA_DIRECTORY);
 
-
             Gdx.input.setInputProcessor(new ClientInputAdapter(this, authUtils));
 
-
             scheduleReconnector();
-
 
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -123,6 +132,26 @@ public class TheOtherWorldsGame extends BaseGame {
         }
     }
 
+
+    void addHudShapeUpdates(List<? extends Drawable> floorDrawingUpdates) {
+        synchronized (this.hudShapeUpdates) {
+            this.hudShapeUpdates.addAll(floorDrawingUpdates);
+        }
+    }
+
+    public void addHudShapeRemovals(List<String> removals) {
+        synchronized (this.hudShapeRemovals) {
+            hudShapeRemovals.addAll(removals);
+        }
+    }
+
+    public void clearHudShapes() {
+        synchronized (this.hudShapes) {
+            hudShapes.clear();
+        }
+    }
+
+
     void postReconnect(boolean success) {
         //ask for updates and removals
     }
@@ -131,6 +160,19 @@ public class TheOtherWorldsGame extends BaseGame {
     @Override
     public void render() {
         super.render();
+
+
+        //add all new hudShapes
+        synchronized (hudShapeUpdates) {
+            hudShapeUpdates.forEach(update -> hudShapes.put(update.getId(), update));
+            hudShapeUpdates.clear();
+        }
+
+        //do hudShape removals
+        synchronized (hudShapeRemovals) {
+            hudShapeRemovals.forEach(hudShapes::remove);
+            hudShapeRemovals.clear();
+        }
 
 
         //add player if does not exist
@@ -167,13 +209,16 @@ public class TheOtherWorldsGame extends BaseGame {
         //add all new hud components
         //do hud removals
 
+        hudSpriteBatch.begin();
+        hudShapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        hudShapes.values().forEach(hudShape -> hudShape.draw(hudShapeRenderer, null));
+        hudShapeRenderer.end();
+        hudSpriteBatch.end();
 
         //draw all world components
 
-        spriteBatch.setProjectionMatrix(camera.combined);
-        spriteBatch.begin();
-
-
+        worldSpriteBatch.setProjectionMatrix(camera.combined);
+        worldSpriteBatch.begin();
 
         /*
         Sprite sprite = new Sprite(textureStretched, Math.round(width), Math.round(height));
@@ -184,7 +229,7 @@ public class TheOtherWorldsGame extends BaseGame {
 
         //draw all world entities
         worldEntities.forEach((key, entity) -> {
-            spriteBatch.draw(createSpriteIfNeeded(entity.getSpriteName()),
+            worldSpriteBatch.draw(createSpriteIfNeeded(entity.getSpriteName()),
                     entity.getBody().getPosition().x - (entity.getWidth() / 2),
                     entity.getBody().getPosition().y - (entity.getHeight() / 2),
                     entity.getWidth(),
@@ -197,26 +242,26 @@ public class TheOtherWorldsGame extends BaseGame {
 
         //draw player
         //player.sprite.draw(spriteBatch);
-        spriteBatch.end();
+        worldSpriteBatch.end();
 
-        hudBatch.begin();
+        hudSpriteBatch.begin();
         //draw all hud items
         //hudBatch.draw(sprite, sprite.getX(), sprite.getY(), hudVisual.width, hudVisual.height);
 
-        font.draw(hudBatch, "Text did not come from server", -WIDTH() / 2, HEIGHT() / 4);
-        hudBatch.end();
+        font.draw(hudSpriteBatch, "Text did not come from server", -WIDTH() / 2, HEIGHT() / 4);
+        hudSpriteBatch.end();
 
     }
 
 
     private Sprite createSpriteIfNeeded(String spriteName) {
-        if(spriteMap.containsKey(spriteName)) {
+        if (spriteMap.containsKey(spriteName)) {
             return spriteMap.get(spriteName);
         }
 
-        if(Gdx.files.internal(spriteName).exists()) {
+        if (Gdx.files.internal(spriteName).exists()) {
             return tryLoadSprite(spriteName);
-        } else if(Gdx.files.internal(getServersDirectory() + spriteName).exists()) {
+        } else if (Gdx.files.internal(getServersDirectory() + spriteName).exists()) {
             return tryLoadSprite(getServersDirectory() + spriteName);
         }
 
@@ -234,7 +279,7 @@ public class TheOtherWorldsGame extends BaseGame {
         Sprite sprite;
         try {
             sprite = SpriteUtils.newSprite(spriteName);
-        } catch(Exception e) {
+        } catch (Exception e) {
             sprite = SpriteUtils.newSprite("missing.png");
             System.out.println("Issue loading sprite: " + spriteName + ". Message: " + e.getMessage());
         }

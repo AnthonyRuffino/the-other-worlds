@@ -1,12 +1,12 @@
 package io.blocktyper.theotherworlds.server.messaging;
 
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.esotericsoftware.kryo.Kryo;
 import io.blocktyper.theotherworlds.server.world.WorldEntityUpdate;
-import io.blocktyper.theotherworlds.visible.*;
-
+import io.blocktyper.theotherworlds.visible.RelativeState;
 
 import java.util.*;
 
@@ -30,6 +30,11 @@ public class KryoUtils {
         kryo.register(WorldEntityRemovals.class);
         kryo.register(ImageRequest.class);
         kryo.register(ImageResponse.class);
+
+        //Drawing
+        kryo.register(Drawable.class);
+        kryo.register(Line.class);
+        kryo.register(Color.class);
 
         //User interaction
         kryo.register(PerformActionRequest.class);

@@ -49,9 +49,9 @@ public class FileUtils {
     }
 
     public static JsonNode getJsonNodeFromRawString(String rawJsonString) throws RuntimeException {
-        try{
+        try {
             return OBJECT_MAPPER.readTree(rawJsonString);
-        } catch(Exception ex) {
+        } catch (Exception ex) {
             System.out.println("Exception reading JsonNode from raw string: " + rawJsonString + " - Message: " + ex.getMessage());
             ex.printStackTrace();
             return null;
@@ -59,7 +59,7 @@ public class FileUtils {
     }
 
     public static byte[] getLocalFileBytes(String path) {
-        if(!Files.exists(Paths.get(path))) {
+        if (!Files.exists(Paths.get(path))) {
             return null;
         }
         try {
@@ -115,6 +115,10 @@ public class FileUtils {
     }
 
     public static String cleanFileName(String badFileName, boolean allowPaths) {
+
+        if (badFileName == null) {
+            badFileName = "";
+        }
 
         if (!allowPaths) {
             badFileName = badFileName.replaceAll("\\.", "");

@@ -32,12 +32,13 @@ public class AuthUtils {
         this.host = host;
     }
 
-    public LoginRequest loginRequest(byte[] publicKey) {
+    public LoginRequest loginRequest(byte[] publicKey, String captcha) {
         String signedChallenge = lastChallenge != null ? KeyUtils.sign(lastChallenge, keyPair.getPrivate()) : null;
         LoginRequest request = new LoginRequest();
         request.username = FileUtils.cleanFileName(username, false);
         request.signedChallenge = signedChallenge;
         request.publicKey = publicKey;
+        request.captcha = captcha;
         return request;
     }
 
@@ -47,7 +48,7 @@ public class AuthUtils {
             if (username == null) {
                 promptLogin(Gdx.input, USER_DATA_DIRECTORY);
             } else {
-                login(null, null);
+                login(null, null, null);
                 postReconnect.accept(true);
             }
         }
@@ -85,31 +86,40 @@ public class AuthUtils {
             boolean newUser,
             String userDataDirectory
     ) {
-        input.getTextInput(new Input.TextInputListener() {
-            @Override
-            public void input(String username) {
-                username = FileUtils.cleanFileName(username, false);
-                if (!username.isBlank()) {
-                    AuthUtils.this.username = username;
-                    keyPair = KeyUtils.loadKeyPair(userDataDirectory + username + "/id_rsa", userDataDirectory + username + "/id_rsa.pub");
-                    login(newUser ? keyPair.getPublic().getEncoded() : null, null);
-                } else {
-                    promptLogin(input, "", "", false, userDataDirectory);
-                }
-            }
+        String title = (newUser ? "New User:" : "Login: ") + previousError;
+        input.getTextInput(
+                new Input.TextInputListener() {
+                    @Override
+                    public void input(String text) {
+                        if (!newUser) {
+                            text = FileUtils.cleanFileName(text, false);
+                            AuthUtils.this.username = text;
+                        }
 
-            @Override
-            public void canceled() {
-                System.exit(-1);
-            }
-        }, "Login: " + previousError, prefilledUserName, prefilledUserName.isEmpty() ? "username" : null);
+                        if (!text.isBlank()) {
+                            keyPair = KeyUtils.loadKeyPair(userDataDirectory + AuthUtils.this.username + "/id_rsa", userDataDirectory + AuthUtils.this.username + "/id_rsa.pub");
+                            login(newUser ? keyPair.getPublic().getEncoded() : null, null, newUser ? text : null);
+                        } else {
+                            promptLogin(input, "", "", newUser, userDataDirectory);
+                        }
+                    }
+
+                    @Override
+                    public void canceled() {
+                        System.exit(-1);
+                    }
+                },
+                title,
+                prefilledUserName,
+                prefilledUserName.isEmpty() ? (newUser ? "Captcha" : "username") : null
+        );
     }
 
-    public void login(byte[] publicKey, String challenge) {
-        if(challenge != null) {
+    public void login(byte[] publicKey, String challenge, String captcha) {
+        if (challenge != null) {
             lastChallenge = challenge;
         }
-        client.sendTCP(loginRequest(publicKey));
+        client.sendTCP(loginRequest(publicKey, captcha));
     }
 
 }
