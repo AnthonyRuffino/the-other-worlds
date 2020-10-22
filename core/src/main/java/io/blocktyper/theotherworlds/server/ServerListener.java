@@ -8,14 +8,18 @@ import io.blocktyper.theotherworlds.server.auth.KeyUtils;
 import io.blocktyper.theotherworlds.server.messaging.*;
 
 import java.security.PublicKey;
-import java.util.Set;
+import java.time.Instant;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class ServerListener extends Listener {
 
 
+    private static final int CHALLENGE_EXPIRY_SECONDS = 10;
     private final TheOtherWorldsGameServer server;
+
+    private Map<String, Map.Entry<String, Instant>> challenges = Collections.synchronizedMap(new HashMap<>());
 
     public ServerListener(TheOtherWorldsGameServer server) {
         this.server = server;
@@ -86,34 +90,43 @@ public class ServerListener extends Listener {
         request.username = FileUtils.cleanFileName(request.username, false);
 
         ConnectResponse response = new ConnectResponse();
+        String freshestChallenge;
 
         if (request.username == null || request.username.isBlank()) {
             response.success = false;
             response.newUser = false;
             response.message = "empty";
         } else {
-            System.out.println("user connected: " + request.username);
 
-            String publicKeyPath = server.USER_DATA_DIRECTORY + request.username + "/id_rsa.pub";
+            String publicKeyPath = TheOtherWorldsGameServer.USER_DATA_DIRECTORY + request.username + "/id_rsa.pub";
 
             byte[] publicKeyBytes = FileUtils.getLocalFileBytes(publicKeyPath);
 
             if (publicKeyBytes != null) {
-                PublicKey publicKey;
-                try {
-                    publicKey = KeyUtils.decodePublicKey(publicKeyBytes);
-                } catch (Exception ex) {
-                    throw new RuntimeException("error recovering public key: " + ex.getMessage());
+                System.out.println("Existing user connection request: " + request.username);
+                if ((freshestChallenge = getFreshestChallengeForUser(request)) == null) {
+                    String challenge = UUID.randomUUID().toString();
+                    challenges.put(request.username, new AbstractMap.SimpleEntry<>(challenge, Instant.now().plusSeconds(CHALLENGE_EXPIRY_SECONDS)));
+                    response.username = request.username;
+                    response.challenge = challenge;
+                } else {
+                    PublicKey publicKey;
+                    try {
+                        publicKey = KeyUtils.decodePublicKey(publicKeyBytes);
+                    } catch (Exception ex) {
+                        throw new RuntimeException("error recovering public key: " + ex.getMessage());
+                    }
+
+                    response.success = KeyUtils.verify(freshestChallenge, request.signedChallenge, publicKey);
+                    response.message = response.success ? "User authenticated" : "user not authenticated";
                 }
-
-                response.success = KeyUtils.verify(request.username, request.signedUserName, publicKey);
-                response.message = response.success ? "User authenticated" : "user not authenticated";
-
             } else if (request.publicKey != null) {
+                System.out.println("New user creation attempt: " + request.username);
                 FileUtils.writeFile(publicKeyPath, request.publicKey);
                 response.success = true;
                 response.message = "User created";
             } else {
+                System.out.println("New user creation request: " + request.username);
                 response.success = false;
                 response.newUser = true;
                 response.username = request.username;
@@ -128,6 +141,23 @@ public class ServerListener extends Listener {
         }
 
         connection.sendTCP(response);
+    }
+
+    private String getFreshestChallengeForUser(LoginRequest loginRequest) {
+        if (loginRequest.signedChallenge != null && !loginRequest.signedChallenge.isBlank()) {
+            synchronized (challenges) {
+                Map.Entry<String, Instant> lastChallenge = challenges.get(loginRequest.username);
+                if (lastChallenge != null) {
+                    if ((Instant.now()).isBefore(lastChallenge.getValue())) {
+                        challenges.remove(loginRequest.username);
+                        return lastChallenge.getKey();
+                    } else {
+                        System.out.println("Challenge expired: " + loginRequest.username);
+                    }
+                }
+            }
+        }
+        return null;
     }
 
 }

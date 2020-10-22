@@ -59,6 +59,9 @@ public class FileUtils {
     }
 
     public static byte[] getLocalFileBytes(String path) {
+        if(!Files.exists(Paths.get(path))) {
+            return null;
+        }
         try {
             return Files.readAllBytes(Paths.get(path));
         } catch (Exception ex) {

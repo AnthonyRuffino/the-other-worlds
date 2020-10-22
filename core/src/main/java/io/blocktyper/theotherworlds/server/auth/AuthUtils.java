@@ -11,7 +11,6 @@ import io.blocktyper.theotherworlds.server.messaging.KryoUtils;
 import io.blocktyper.theotherworlds.server.messaging.LoginRequest;
 
 import java.security.KeyPair;
-import java.security.PrivateKey;
 import java.util.function.Consumer;
 
 import static io.blocktyper.theotherworlds.TheOtherWorldsGame.USER_DATA_DIRECTORY;
@@ -24,6 +23,7 @@ public class AuthUtils {
     String username;
     String host;
     Consumer<Boolean> postReconnect;
+    String lastChallenge;
 
 
     public AuthUtils(TheOtherWorldsGame game, Consumer<Boolean> postReconnect, String host) {
@@ -32,11 +32,11 @@ public class AuthUtils {
         this.host = host;
     }
 
-    public LoginRequest loginRequest(String username, byte[] publicKey, PrivateKey privateKey) {
-        String signedMessage = KeyUtils.sign(username, privateKey);
+    public LoginRequest loginRequest(byte[] publicKey) {
+        String signedChallenge = lastChallenge != null ? KeyUtils.sign(lastChallenge, keyPair.getPrivate()) : null;
         LoginRequest request = new LoginRequest();
         request.username = FileUtils.cleanFileName(username, false);
-        request.signedUserName = signedMessage;
+        request.signedChallenge = signedChallenge;
         request.publicKey = publicKey;
         return request;
     }
@@ -47,7 +47,7 @@ public class AuthUtils {
             if (username == null) {
                 promptLogin(Gdx.input, USER_DATA_DIRECTORY);
             } else {
-                login(null);
+                login(null, null);
                 postReconnect.accept(true);
             }
         }
@@ -92,7 +92,7 @@ public class AuthUtils {
                 if (!username.isBlank()) {
                     AuthUtils.this.username = username;
                     keyPair = KeyUtils.loadKeyPair(userDataDirectory + username + "/id_rsa", userDataDirectory + username + "/id_rsa.pub");
-                    login(newUser ? keyPair.getPublic().getEncoded() : null);
+                    login(newUser ? keyPair.getPublic().getEncoded() : null, null);
                 } else {
                     promptLogin(input, "", "", false, userDataDirectory);
                 }
@@ -105,8 +105,11 @@ public class AuthUtils {
         }, "Login: " + previousError, prefilledUserName, prefilledUserName.isEmpty() ? "username" : null);
     }
 
-    public void login(byte[] publicKey) {
-        client.sendTCP(loginRequest(username, publicKey, keyPair.getPrivate()));
+    public void login(byte[] publicKey, String challenge) {
+        if(challenge != null) {
+            lastChallenge = challenge;
+        }
+        client.sendTCP(loginRequest(publicKey));
     }
 
 }

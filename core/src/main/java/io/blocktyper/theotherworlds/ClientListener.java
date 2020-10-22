@@ -35,14 +35,16 @@ public class ClientListener extends Listener {
         } else if (object instanceof ConnectResponse) {
             ConnectResponse response = (ConnectResponse) object;
             System.out.println("Connect status: " + response.success);
-            if (!response.success) {
+            if (response.challenge != null) {
+                game.authUtils.login(null, response.challenge);
+            } else if (!response.success) {
                 System.out.println(response.message);
                 game.authUtils.promptLogin(
                         Gdx.input,
                         response.message,
                         response.username,
                         response.newUser,
-                        game.USER_DATA_DIRECTORY
+                        TheOtherWorldsGame.USER_DATA_DIRECTORY
                 );
             } else {
                 //game.playerInstantiation = response.playerUpdate;
