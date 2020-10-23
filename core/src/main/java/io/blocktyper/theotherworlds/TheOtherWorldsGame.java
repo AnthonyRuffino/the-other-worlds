@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.World;
+import io.blocktyper.theotherworlds.config.ClientConfig;
 import io.blocktyper.theotherworlds.config.GameConfig;
 import io.blocktyper.theotherworlds.server.TheOtherWorldsGameServer;
 import io.blocktyper.theotherworlds.server.auth.AuthUtils;
@@ -36,7 +37,8 @@ public class TheOtherWorldsGame extends BaseGame {
 
     BitmapFont font;
 
-    final GameConfig config;
+    final ClientConfig clientConfig;
+    GameConfig gameConfig;
     String gameMode = "play";
 
 
@@ -60,10 +62,10 @@ public class TheOtherWorldsGame extends BaseGame {
     float camOffset = 0f;
 
 
-    public TheOtherWorldsGame(GameConfig config) {
-        this.config = config;
+    public TheOtherWorldsGame(ClientConfig clientConfig) {
+        this.clientConfig = clientConfig;
 
-        if (this.config.startServer) {
+        if (this.clientConfig.startServer) {
             gameServer = new TheOtherWorldsGameServer();
             gameServer.start();
         }
@@ -76,10 +78,9 @@ public class TheOtherWorldsGame extends BaseGame {
 
         try {
 
-
             font = new BitmapFont();
 
-            host = config.host == null ? "localhost" : config.host;
+            host = clientConfig.host == null ? "localhost" : clientConfig.host;
             authUtils = new AuthUtils(this, this::postReconnect, host);
             authUtils.setUpClient();
             authUtils.promptLogin(Gdx.input, USER_DATA_DIRECTORY);

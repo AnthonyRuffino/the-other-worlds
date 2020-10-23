@@ -1,5 +1,5 @@
 {
-  "enabled": true,
-  "classPath": "io.blocktyper.theotherworlds.plugin.PluginExample",
-  "collisionDamage": -10
+  "enabled" : true,
+  "collisionDamage" : -20,
+  "classPath" : "io.blocktyper.theotherworlds.plugin.PluginExample"
 }

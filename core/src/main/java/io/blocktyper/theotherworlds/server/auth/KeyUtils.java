@@ -1,6 +1,6 @@
 package io.blocktyper.theotherworlds.server.auth;
 
-import io.blocktyper.theotherworlds.config.FileUtils;
+import io.blocktyper.theotherworlds.plugin.utils.FileUtils;
 
 import java.security.*;
 import java.security.spec.PKCS8EncodedKeySpec;

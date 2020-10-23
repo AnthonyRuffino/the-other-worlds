@@ -1,4 +1,4 @@
-package io.blocktyper.theotherworlds.config;
+package io.blocktyper.theotherworlds.plugin.utils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -9,11 +9,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class FileUtils {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     final static int[] illegalChars = {34, 60, 62, 124, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 58, 42, 63, 92, 47};
 
@@ -27,25 +28,58 @@ public class FileUtils {
                 .setMergeable(false);
     }
 
-    public static RootConfig getLocalLwjglApplicationConfig(ClassLoader classLoader, String defaultFromResources, String localOverride) {
+    public static <T> T getJsonNodeWithLocalOverride(
+            ClassLoader classLoader,
+            String defaultFromResources,
+            Optional<JsonNode> optionalLocalOverride,
+            Class<T> clazz
+    ) {
         try {
-            String configString = FileUtils.getResourceAsString(defaultFromResources, classLoader);
 
-            JsonNode defaults = getJsonNodeFromRawString(configString);
+            final JsonNode finalConfig = getJsonNodeWithLocalOverride(classLoader, defaultFromResources, optionalLocalOverride);
 
-            final JsonNode finalConfig;
-            String localConfigString = FileUtils.getLocalFileString(localOverride);
-            if (localConfigString != null && !localConfigString.isBlank()) {
-                JsonNode overrides = getJsonNodeFromRawString(localConfigString);
-                finalConfig = OBJECT_MAPPER.readerForUpdating(defaults).readValue(overrides);
-            } else {
-                finalConfig = defaults;
-            }
-
-            return OBJECT_MAPPER.treeToValue(finalConfig, RootConfig.class);
+            return finalConfig == null ? null : OBJECT_MAPPER.treeToValue(finalConfig, clazz);
         } catch (Exception ex) {
             throw new RuntimeException("Config issue: " + ex.getMessage(), ex);
         }
+    }
+
+    public static JsonNode getJsonNodeWithLocalOverride(
+            ClassLoader classLoader,
+            String defaultFromResources,
+            Optional<JsonNode> optionalLocalOverride
+    ) {
+        try {
+            String configString = FileUtils.getResourceAsString(defaultFromResources, classLoader);
+
+            JsonNode defaults = configString == null ? null : getJsonNodeFromRawString(configString);
+
+            return optionalLocalOverride.flatMap(localOverride -> {
+                try {
+                    return defaults == null ? Optional.of(localOverride) : OBJECT_MAPPER.readerForUpdating(defaults).readValue(localOverride);
+                } catch (Exception ex) {
+                    return Optional.<JsonNode>empty();
+                }
+            }).orElse(defaults);
+        } catch (Exception ex) {
+            throw new RuntimeException("Config issue: " + ex.getMessage(), ex);
+        }
+    }
+
+    public static <T> T getJsonNodeWithLocalOverride(
+            ClassLoader classLoader,
+            String defaultFromResources,
+            String localOverride,
+            Class<T> clazz
+    ) {
+        return getJsonNodeWithLocalOverride(
+                classLoader,
+                defaultFromResources,
+                Optional.ofNullable(FileUtils.getLocalFileString(localOverride))
+                        .filter(c -> !c.isBlank())
+                        .map(FileUtils::getJsonNodeFromRawString),
+                clazz
+        );
     }
 
     public static JsonNode getJsonNodeFromRawString(String rawJsonString) throws RuntimeException {
@@ -85,11 +119,11 @@ public class FileUtils {
         InputStream inputStream = classLoader.getResourceAsStream(fileName);
 
         if (inputStream == null) {
-            throw new IllegalArgumentException("file not found! " + fileName);
+            System.out.println("file not found! " + fileName);
+            return null;
         } else {
             return inputStringToString(inputStream);
         }
-
     }
 
     public static String inputStringToString(InputStream inputStream) {

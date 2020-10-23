@@ -1,4 +1,4 @@
-package io.blocktyper.theotherworlds.config;
+package io.blocktyper.theotherworlds.plugin.controls;
 
 public class KeyBinding {
     public String listenerAction;

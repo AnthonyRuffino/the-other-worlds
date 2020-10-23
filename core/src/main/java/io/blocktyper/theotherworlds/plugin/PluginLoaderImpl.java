@@ -1,14 +1,20 @@
 package io.blocktyper.theotherworlds.plugin;
 
 import com.badlogic.gdx.physics.box2d.World;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import io.blocktyper.theotherworlds.config.FileUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.blocktyper.theotherworlds.plugin.utils.FileUtils;
 
-import java.io.File;
+import java.io.*;
 import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.jar.Attributes;
+import java.util.jar.JarInputStream;
+import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 
 public class PluginLoaderImpl implements PluginLoader, PluginContactListener, PluginStaticWorldEntities, PluginEntityCreator {
@@ -62,27 +68,48 @@ public class PluginLoaderImpl implements PluginLoader, PluginContactListener, Pl
                 System.out.println("Plugin located: " + pluginName);
                 String pluginRootPath = dir.getAbsolutePath() + "/" + pluginName;
                 String configRaw = FileUtils.getLocalFileString(pluginRootPath + "_config.json");
+                String classPath = null;
+                JsonNode config = null;
+                boolean enabled = true;
+
                 if (configRaw == null) {
                     System.out.println("No config for plugin: " + pluginName);
-                    continue;
+                } else {
+                    config = FileUtils.getJsonNodeFromRawString(configRaw);
+                    if (config == null) {
+                        System.out.println("Null config for plugin: " + pluginName);
+                        continue;
+                    }
+                    enabled = Optional.ofNullable(config.get("enabled"))
+                            .map(JsonNode::booleanValue).orElse(true);
+
+                    classPath = Optional.ofNullable(config.get("classPath"))
+                            .map(JsonNode::textValue).orElse(null);
                 }
-                JsonNode config = FileUtils.getJsonNodeFromRawString(configRaw);
-                if (config == null) {
-                    System.out.println("Null config for plugin: " + pluginName);
-                    continue;
-                }
-                if (!Optional.ofNullable(config.get("enabled")).map(JsonNode::booleanValue).orElse(false)) {
-                    System.out.println("Plugin disabled: " + pluginName);
-                    continue;
-                }
-                String classPath = Optional.ofNullable(config.get("classPath")).map(c -> c.textValue()).orElse(null);
-                if (classPath == null || classPath.trim().isEmpty()) {
-                    System.out.println("classPath not configured plugin: " + pluginName);
-                    continue;
-                }
+
                 File pluginJar = new File(pluginRootPath + ".jar");
                 if (!pluginJar.exists()) {
                     System.out.println("Jar not found for plugin: " + pluginName);
+                    continue;
+                }
+
+                if(classPath == null || classPath.trim().isEmpty()) {
+                    try {
+                        final InputStream targetStream =
+                                new DataInputStream(new FileInputStream(pluginJar));
+
+                        JarInputStream jarStream = new JarInputStream(targetStream);
+                        Manifest manifest = jarStream.getManifest();
+                        classPath = (String) Optional.ofNullable(manifest)
+                                .map(mf -> mf.getMainAttributes().get(new Attributes.Name("Main-Class")))
+                                .orElse(null);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                if (classPath == null || classPath.trim().isEmpty()) {
+                    System.out.println("classPath not configured plugin: " + pluginName);
                     continue;
                 }
 
@@ -93,6 +120,32 @@ public class PluginLoaderImpl implements PluginLoader, PluginContactListener, Pl
                     continue;
                 }
                 plugin.init(pluginServer, config);
+                JsonNode mergedConfig = plugin.getConfig();
+
+                if(mergedConfig == null) {
+                    mergedConfig = FileUtils.getJsonNodeFromRawString("{}");
+                }
+
+                if(!mergedConfig.has("classPath")) {
+                    ((ObjectNode)mergedConfig).put("classPath", classPath);
+                }
+
+                try {
+                    String json = FileUtils.OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(mergedConfig);
+                    FileUtils.writeFile(pluginRootPath + "_config.json", json.getBytes());
+                } catch (JsonProcessingException e) {
+                    e.printStackTrace();
+                }
+
+                if (enabled) {
+                    enabled = Optional.ofNullable(mergedConfig.get("enabled"))
+                            .map(JsonNode::booleanValue).orElse(true);
+                    if(!enabled) {
+                        System.out.println("Plugin disabled: " + pluginName);
+                        continue;
+                    }
+                }
+
                 plugins.put(pluginName, plugin);
                 System.out.println("Plugin loaded: " + pluginName);
             }

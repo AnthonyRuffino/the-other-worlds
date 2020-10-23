@@ -3,7 +3,7 @@ package io.blocktyper.theotherworlds;
 import com.badlogic.gdx.Gdx;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Listener;
-import io.blocktyper.theotherworlds.config.FileUtils;
+import io.blocktyper.theotherworlds.plugin.utils.FileUtils;
 import io.blocktyper.theotherworlds.server.auth.AuthUtils;
 import io.blocktyper.theotherworlds.server.messaging.*;
 

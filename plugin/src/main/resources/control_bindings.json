@@ -1,61 +1,4 @@
 {
-  "lwjgl": {
-    "maxNetThreads": -1,
-    "useGL30": false,
-    "gles30ContextMajorVersion": 3,
-    "gles30ContextMinorVersion": 2,
-    "r": 8,
-    "g": 8,
-    "b": 8,
-    "a": 8,
-    "depth": 16,
-    "stencil": 0,
-    "samples": 0,
-    "width": 1350,
-    "height": 1000,
-    "x": -1,
-    "y": -1,
-    "fullscreen": false,
-    "overrideDensity": -1,
-    "vSyncEnabled": true,
-    "title": null,
-    "forceExit": true,
-    "resizable": true,
-    "audioDeviceSimultaneousSources": 16,
-    "audioDeviceBufferSize": 999,
-    "audioDeviceBufferCount": 9,
-    "initialBackgroundColor": {
-      "r": 0,
-      "g": 0,
-      "b": 0,
-      "a": 1
-    },
-    "foregroundFPS": 60,
-    "backgroundFPS": 60,
-    "pauseWhenMinimized": true,
-    "pauseWhenBackground": false,
-    "allowSoftwareMode": false,
-    "preferencesDirectory": ".prefs/",
-    "useHDPI": false
-  },
-  "gameConfig": {
-    "startServer": true,
-    "gameModeSettings": {
-      "global": {
-        "WORLD_PAUSE_WHILE_IN_MENU": true
-      },
-      "play": {
-        "BASE_SPEED": 5.0,
-        "STARTING_LOCATION": {
-          "x": 5,
-          "y": 5
-        },
-        "STARTING_SPELLS": [
-          "FIREBALL",
-          "TELEPORT"
-        ]
-      }
-    },
     "gameModeKeyBindings": {
       "global": {
         "F11": {
@@ -119,26 +62,28 @@
       },
       "menu": {
         "LEFT": {
-          "hudAction": "select_menu_option"
+          "hudAction": "select_hud_element"
+        },"RIGHT": {
+          "hudAction": "cancel_hud_element"
         },
         "MIDDLE": {
           "hudAction": "toggle_autorun"
         },
         "BACK": {
-          "hudAction": "scroll_menu_option_down"
+          "hudAction": "scroll_hud_option_down"
         },
         "FORWARD": {
-          "hudAction": "scroll_menu_option_up"
+          "hudAction": "scroll_hud_option_up"
         }
       },
       "play": {
         "LEFT": {
           "worldAction": "select_entity",
-          "hudAction": "select_hud_item"
+          "hudAction": "select_hud_element"
         },
         "RIGHT": {
           "worldAction": "auto_attack_entity",
-          "hudAction": "deselect_hud_item"
+          "hudAction": "cancel_hud_element"
         }
       }
     }

@@ -1,6 +1,9 @@
 package io.blocktyper.theotherworlds.plugin;
 
-import com.badlogic.gdx.physics.box2d.*;
+import com.badlogic.gdx.physics.box2d.Contact;
+import com.badlogic.gdx.physics.box2d.ContactImpulse;
+import com.badlogic.gdx.physics.box2d.ContactListener;
+import com.badlogic.gdx.physics.box2d.Manifold;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.blocktyper.theotherworlds.plugin.entities.Damageable;
 import io.blocktyper.theotherworlds.plugin.entities.Thing;
@@ -15,6 +18,7 @@ public class PluginExample extends BasePlugin {
     @Override
     public void init(PluginServer pluginServer, JsonNode config) {
         super.init(pluginServer, config);
+
         damageAmount = config != null ? Optional.ofNullable(config.get("collisionDamage")).map(JsonNode::intValue).orElse(-20) : -20;
     }
 
@@ -53,7 +57,7 @@ public class PluginExample extends BasePlugin {
 
     @Override
     public Optional<EntityCreator> getEntityCreator() {
-        long lifeSpan = (5 * 1000)/pluginServer.getTickDelayMillis();
+        long lifeSpan = (5 * 1000) / pluginServer.getTickDelayMillis();
         return Optional.of(() -> {
             long tick = pluginServer.getTick();
             if (tick % 10 == 0) {

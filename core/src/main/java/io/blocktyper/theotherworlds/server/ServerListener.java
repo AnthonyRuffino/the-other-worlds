@@ -2,7 +2,7 @@ package io.blocktyper.theotherworlds.server;
 
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Listener;
-import io.blocktyper.theotherworlds.config.FileUtils;
+import io.blocktyper.theotherworlds.plugin.utils.FileUtils;
 import io.blocktyper.theotherworlds.plugin.PluginLoader;
 import io.blocktyper.theotherworlds.server.auth.CaptchaUtils;
 import io.blocktyper.theotherworlds.server.auth.KeyUtils;

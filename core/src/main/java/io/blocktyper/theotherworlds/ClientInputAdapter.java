@@ -3,8 +3,9 @@ package io.blocktyper.theotherworlds;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputAdapter;
-import io.blocktyper.theotherworlds.config.ButtonBinding;
-import io.blocktyper.theotherworlds.config.KeyBinding;
+import io.blocktyper.theotherworlds.plugin.controls.ButtonBinding;
+import io.blocktyper.theotherworlds.config.GameConfig;
+import io.blocktyper.theotherworlds.plugin.controls.KeyBinding;
 import io.blocktyper.theotherworlds.server.auth.AuthUtils;
 import io.blocktyper.theotherworlds.server.messaging.PerformActionRequest;
 
@@ -34,13 +35,17 @@ public class ClientInputAdapter extends InputAdapter {
         this.game = game;
         this.authUtils = authUtils;
         this.input = input;
-        this.globalButtonBindings = Optional.ofNullable(game.config.gameModeButtonBindings.get("global"));
-        this.globalKeyBindings = Optional.ofNullable(game.config.gameModeKeyBindings.get("global"));
+
+    }
+
+    public void setGameConfig(GameConfig gameConfig) {
+        this.globalButtonBindings = Optional.ofNullable(gameConfig.gameModeButtonBindings.get("global"));
+        this.globalKeyBindings = Optional.ofNullable(gameConfig.gameModeKeyBindings.get("global"));
     }
 
     @Override
     public boolean keyDown(int keycode) {
-        sendKeyActions(Input.Keys.toString(keycode), game.config.gameModeKeyBindings(game.gameMode), false);
+        sendKeyActions(Input.Keys.toString(keycode), getGameModeKeyBindings(), false);
         return super.keyDown(keycode);
     }
 
@@ -71,7 +76,7 @@ public class ClientInputAdapter extends InputAdapter {
         }
 
 
-        sendKeyActions(Input.Keys.toString(keycode), game.config.gameModeKeyBindings(game.gameMode), true);
+        sendKeyActions(Input.Keys.toString(keycode), getGameModeKeyBindings(), true);
         return super.keyUp(keycode);
     }
 
@@ -91,11 +96,11 @@ public class ClientInputAdapter extends InputAdapter {
         final String buttonCode = BUTTON_CODE_MAP.get(button);
 
 
-        Optional<ButtonBinding> globalBinding = globalButtonBindings.map(b -> b.get(buttonCode));
-        Optional<ButtonBinding> gameModeBinding = game.config.gameModeKeyButtonBindings(game.gameMode).map(b -> b.get(buttonCode));
+        Optional<ButtonBinding> globalButtonBinding = getGlobalButtonBinding(buttonCode);
+        Optional<ButtonBinding> gameModeButtonBinding = getGameModeButtonBinding(buttonCode);
 
-        Optional<String> globalHudAction = globalBinding.flatMap(b -> Optional.ofNullable(b.hudAction));
-        Optional<String> gameModeHudAction = gameModeBinding.flatMap(b -> Optional.ofNullable(b.hudAction));
+        Optional<String> globalHudAction = globalButtonBinding.flatMap(b -> Optional.ofNullable(b.hudAction));
+        Optional<String> gameModeHudAction = gameModeButtonBinding.flatMap(b -> Optional.ofNullable(b.hudAction));
 
 
 //        if (globalHudAction.isPresent() || gameModeHudAction.isPresent()) {
@@ -127,12 +132,30 @@ public class ClientInputAdapter extends InputAdapter {
         return false;
     }
 
+    private Optional<ButtonBinding> getGlobalButtonBinding(String buttonCode) {
+        return Optional.ofNullable(globalButtonBindings).flatMap(gbb -> gbb.map(b -> b.get(buttonCode)));
+    }
+
+    private Optional<ButtonBinding> getGameModeButtonBinding(String buttonCode) {
+        return Optional.ofNullable(game.gameConfig)
+                .flatMap(gameConfig -> gameConfig.gameModeButtonBindings(game.gameMode).map(b -> b.get(buttonCode)));
+    }
+
+    private Optional<Map<String, KeyBinding>> getGameModeKeyBindings() {
+        return Optional.ofNullable(game.gameConfig)
+                .flatMap(gameConfig -> gameConfig.gameModeKeyBindings(game.gameMode));
+    }
+
+    private Optional<KeyBinding> getGlobalKeyBinding(String key) {
+        return Optional.ofNullable(globalKeyBindings).flatMap(gkbs -> gkbs.map(gmb -> gmb.get(key)));
+    }
+
 
     void sendKeyActions(String key, Optional<Map<String, KeyBinding>> gameModeKeyBindings, boolean isCancel) {
-        Optional<KeyBinding> globalBinding = globalKeyBindings.map(gmb -> gmb.get(key));
+        Optional<KeyBinding> globalKeyBinding = getGlobalKeyBinding(key);
         Optional<KeyBinding> gameModeKeyBinding = gameModeKeyBindings.map(gmb -> gmb.get(key));
 
-        globalBinding.ifPresent(keyBinding -> {
+        globalKeyBinding.ifPresent(keyBinding -> {
             PerformActionRequest request = new PerformActionRequest();
             request.action = keyBinding.listenerAction;
             request.cancel = isCancel;

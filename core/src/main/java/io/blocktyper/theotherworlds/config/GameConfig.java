@@ -2,6 +2,8 @@ package io.blocktyper.theotherworlds.config;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.JsonNode;
+import io.blocktyper.theotherworlds.plugin.controls.ButtonBinding;
+import io.blocktyper.theotherworlds.plugin.controls.KeyBinding;
 
 import java.util.Arrays;
 import java.util.List;
@@ -90,7 +92,7 @@ public class GameConfig {
         return Optional.ofNullable(gameModeKeyBindings.get(gameMode));
     }
 
-    public Optional<Map<String, ButtonBinding>> gameModeKeyButtonBindings(String gameMode) {
+    public Optional<Map<String, ButtonBinding>> gameModeButtonBindings(String gameMode) {
         return Optional.ofNullable(gameModeButtonBindings.get(gameMode));
     }
 }

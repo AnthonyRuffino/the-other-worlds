@@ -1,12 +1,9 @@
 package io.blocktyper.theotherworlds.desktop;
 
 import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.blocktyper.theotherworlds.TheOtherWorldsGame;
-import io.blocktyper.theotherworlds.config.FileUtils;
+import io.blocktyper.theotherworlds.plugin.utils.FileUtils;
 import io.blocktyper.theotherworlds.config.RootConfig;
-
-import java.util.Optional;
 
 public class DesktopLauncher {
     public static void main(String[] arg) {
@@ -15,10 +12,11 @@ public class DesktopLauncher {
 
     private void run() {
 
-        RootConfig config = FileUtils.getLocalLwjglApplicationConfig(
+        RootConfig config = FileUtils.getJsonNodeWithLocalOverride(
                 getClass().getClassLoader(),
-                "default_config.json",
-                "./local_config.json"
+                "default_client_config.json",
+                "./client_config.json",
+                RootConfig.class
         );
 
 //        config.lwjgl.setDisplayModeCallback = (originalConfig) -> {
@@ -29,9 +27,6 @@ public class DesktopLauncher {
 //            return originalConfig;
 //        };
 
-        Optional<Double> s = config.gameConfig.getSetting(Double.class, "play.BASE_SPEED");
-        Optional<ArrayNode> d2 = config.gameConfig.getSetting(ArrayNode.class, "play.STARTING_SPELLS");
-
         if (config.lwjgl.maxNetThreads < 0) {
             config.lwjgl.maxNetThreads = Integer.MAX_VALUE;
         }
@@ -41,7 +36,7 @@ public class DesktopLauncher {
 
 
         //new LwjglApplication(new TheOtherWorldsGame(config.gameConfig), new LwjglApplicationConfiguration());
-        new LwjglApplication(new TheOtherWorldsGame(config.gameConfig), config.lwjgl);
+        new LwjglApplication(new TheOtherWorldsGame(config.clientConfig), config.lwjgl);
         //new LwjglApplication(new MyGdxGame2(), config.lwjgl);
     }
 

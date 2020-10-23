@@ -5,5 +5,5 @@ import io.blocktyper.theotherworlds.config.GameConfig;
 
 public class RootConfig {
     public LwjglApplicationConfiguration lwjgl;
-    public GameConfig gameConfig;
+    public ClientConfig clientConfig;
 }

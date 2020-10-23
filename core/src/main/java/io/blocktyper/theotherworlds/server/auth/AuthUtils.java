@@ -6,7 +6,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryonet.Client;
 import io.blocktyper.theotherworlds.ClientListener;
 import io.blocktyper.theotherworlds.TheOtherWorldsGame;
-import io.blocktyper.theotherworlds.config.FileUtils;
+import io.blocktyper.theotherworlds.plugin.utils.FileUtils;
 import io.blocktyper.theotherworlds.server.messaging.KryoUtils;
 import io.blocktyper.theotherworlds.server.messaging.LoginRequest;
 
