@@ -3,18 +3,13 @@ package io.blocktyper.theotherworlds.plugin;
 import com.badlogic.gdx.physics.box2d.World;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.blocktyper.theotherworlds.plugin.utils.FileUtils;
 
-import java.io.*;
+import java.io.File;
 import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.jar.Attributes;
-import java.util.jar.JarInputStream;
-import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 
 public class PluginLoaderImpl implements PluginLoader, PluginContactListener, PluginStaticWorldEntities, PluginEntityCreator {
@@ -68,11 +63,12 @@ public class PluginLoaderImpl implements PluginLoader, PluginContactListener, Pl
                 System.out.println("Plugin located: " + pluginName);
                 String pluginRootPath = dir.getAbsolutePath() + "/" + pluginName;
                 String configRaw = FileUtils.getLocalFileString(pluginRootPath + "_config.json");
-                String classPath = null;
-                JsonNode config = null;
+                Optional<String> classPath = Optional.empty();
+                final JsonNode config;
                 boolean enabled = true;
 
                 if (configRaw == null) {
+                    config = null;
                     System.out.println("No config for plugin: " + pluginName);
                 } else {
                     config = FileUtils.getJsonNodeFromRawString(configRaw);
@@ -84,7 +80,7 @@ public class PluginLoaderImpl implements PluginLoader, PluginContactListener, Pl
                             .map(JsonNode::booleanValue).orElse(true);
 
                     classPath = Optional.ofNullable(config.get("classPath"))
-                            .map(JsonNode::textValue).orElse(null);
+                            .map(JsonNode::textValue);
                 }
 
                 File pluginJar = new File(pluginRootPath + ".jar");
@@ -93,62 +89,46 @@ public class PluginLoaderImpl implements PluginLoader, PluginContactListener, Pl
                     continue;
                 }
 
-                if(classPath == null || classPath.trim().isEmpty()) {
-                    try {
-                        final InputStream targetStream =
-                                new DataInputStream(new FileInputStream(pluginJar));
+                final boolean enabledStatusBeforeLoading = enabled;
+                loader.loadPlugin(pluginJar, Plugin.class, classPath)
+                        .ifPresentOrElse(plugin -> this.loadPlugin(pluginName, plugin, enabledStatusBeforeLoading, config, pluginRootPath),
+                                () -> System.out.println("Plugin could not be loaded: " + pluginName));
 
-                        JarInputStream jarStream = new JarInputStream(targetStream);
-                        Manifest manifest = jarStream.getManifest();
-                        classPath = (String) Optional.ofNullable(manifest)
-                                .map(mf -> mf.getMainAttributes().get(new Attributes.Name("Main-Class")))
-                                .orElse(null);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                if (classPath == null || classPath.trim().isEmpty()) {
-                    System.out.println("classPath not configured plugin: " + pluginName);
-                    continue;
-                }
-
-                Plugin plugin = loader.LoadClass(pluginJar, classPath, Plugin.class);
-
-                if (plugin == null) {
-                    System.out.println("Plugin could not be loaded: " + pluginName);
-                    continue;
-                }
-                plugin.init(pluginServer, config);
-                JsonNode mergedConfig = plugin.getConfig();
-
-                if(mergedConfig == null) {
-                    mergedConfig = FileUtils.getJsonNodeFromRawString("{}");
-                }
-
-                if(!mergedConfig.has("classPath")) {
-                    ((ObjectNode)mergedConfig).put("classPath", classPath);
-                }
-
-                try {
-                    String json = FileUtils.OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(mergedConfig);
-                    FileUtils.writeFile(pluginRootPath + "_config.json", json.getBytes());
-                } catch (JsonProcessingException e) {
-                    e.printStackTrace();
-                }
-
-                if (enabled) {
-                    enabled = Optional.ofNullable(mergedConfig.get("enabled"))
-                            .map(JsonNode::booleanValue).orElse(true);
-                    if(!enabled) {
-                        System.out.println("Plugin disabled: " + pluginName);
-                        continue;
-                    }
-                }
-
-                plugins.put(pluginName, plugin);
-                System.out.println("Plugin loaded: " + pluginName);
             }
         }
+    }
+
+    private void loadPlugin(String pluginName, Plugin plugin, boolean enabledStatusBeforeLoading, JsonNode config, String pluginRootPath) {
+        if (plugin == null) {
+            System.out.println("Plugin could not be loaded: " + pluginName);
+
+        }
+        plugin.init(pluginServer, config);
+        JsonNode mergedConfig = plugin.getConfig();
+
+        if (mergedConfig == null) {
+            mergedConfig = FileUtils.getJsonNodeFromRawString("{}");
+        }
+
+        try {
+            String json = FileUtils.OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(mergedConfig);
+            FileUtils.writeFile(pluginRootPath + "_config.json", json.getBytes());
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+
+        boolean enabled = enabledStatusBeforeLoading;
+        if (enabledStatusBeforeLoading) {
+            enabled = Optional.ofNullable(mergedConfig.get("enabled"))
+                    .map(JsonNode::booleanValue).orElse(true);
+        }
+
+        if (!enabled) {
+            System.out.println("Plugin disabled: " + pluginName);
+            return;
+        }
+
+        plugins.put(pluginName, plugin);
+        System.out.println("Plugin loaded: " + pluginName);
     }
 }
