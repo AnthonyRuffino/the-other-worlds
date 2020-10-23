@@ -35,10 +35,7 @@ public class TheOtherWorldsGame extends BaseGame {
 
     String host;
     World clientWorld;
-    SpriteBatch worldSpriteBatch;
 
-    SpriteBatch hudSpriteBatch;
-    ShapeRenderer hudShapeRenderer;
 
     BitmapFont font;
 
@@ -80,10 +77,9 @@ public class TheOtherWorldsGame extends BaseGame {
         this.clientWorld = new World(new Vector2(0, -1000), true);
 
         try {
-            worldSpriteBatch = new SpriteBatch();
-            hudSpriteBatch = new SpriteBatch();
-            hudShapeRenderer = new ShapeRenderer();
-            hudShapeRenderer.setColor(Color.WHITE);
+
+
+
 
             font = new BitmapFont();
 
@@ -92,7 +88,7 @@ public class TheOtherWorldsGame extends BaseGame {
             authUtils.setUpClient();
             authUtils.promptLogin(Gdx.input, USER_DATA_DIRECTORY);
 
-            Gdx.input.setInputProcessor(new ClientInputAdapter(this, authUtils));
+            Gdx.input.setInputProcessor(new ClientInputAdapter(this, authUtils, Gdx.input));
 
             scheduleReconnector();
 

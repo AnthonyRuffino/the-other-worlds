@@ -2,8 +2,11 @@ package io.blocktyper.theotherworlds;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 
 public class BaseGame extends ApplicationAdapter {
     private Integer originalWidthForResizing = null;
@@ -14,13 +17,22 @@ public class BaseGame extends ApplicationAdapter {
     protected int widthUponCreate = 0;
     protected OrthographicCamera camera;
 
+    protected SpriteBatch worldSpriteBatch;
+    protected SpriteBatch hudSpriteBatch;
+    protected ShapeRenderer hudShapeRenderer;
+
     @Override
     public void create() {
         heightUponCreate = HEIGHT();
         widthUponCreate = WIDTH();
 
         camera = new OrthographicCamera(widthUponCreate, heightUponCreate);
-        camera.zoom = 50;
+        camera.zoom = 15;
+
+        worldSpriteBatch = new SpriteBatch();
+        hudSpriteBatch = new SpriteBatch();
+        hudShapeRenderer = new ShapeRenderer();
+        hudShapeRenderer.setColor(Color.WHITE);
     }
 
     @Override
@@ -46,5 +58,46 @@ public class BaseGame extends ApplicationAdapter {
 
     public static int WIDTH() {
         return Gdx.graphics.getWidth();
+    }
+
+    public void processCommand(String command) {
+        String[] parts = command.split(" ");
+        if(parts == null || parts.length < 1) {
+            return;
+        }
+        if(parts[0].equals("setColor")) {
+            Color worldSpriteBatchColor = worldSpriteBatch.getColor();
+            Color hudSpriteBatchColor = hudSpriteBatch.getColor();
+            Color hudShapeRendererColor = hudShapeRenderer.getColor();
+
+
+            for(int i = 1; i < parts.length; i++) {
+                if(!parts[i].contains("=")) {
+                    continue;
+                }
+                String[] channelAndValue = parts[i].split("=");
+                String channel = channelAndValue[0];
+                String valueRaw = channelAndValue[1];
+                float value = Float.parseFloat(valueRaw);
+
+                if(channel.equals("r")) {
+                    worldSpriteBatchColor.r = value;
+                    hudSpriteBatchColor.r = value;
+                    hudShapeRendererColor.r = value;
+                } else if(channel.equals("g")) {
+                    worldSpriteBatchColor.g = value;
+                    hudSpriteBatchColor.g = value;
+                    hudShapeRendererColor.g = value;
+                } else if(channel.equals("b")) {
+                    worldSpriteBatchColor.b = value;
+                    hudSpriteBatchColor.b = value;
+                    hudShapeRendererColor.b = value;
+                }
+            }
+
+            worldSpriteBatch.setColor(worldSpriteBatchColor);
+            hudSpriteBatch.setColor(hudSpriteBatchColor);
+            hudShapeRenderer.setColor(hudShapeRendererColor);
+        }
     }
 }

@@ -3,7 +3,6 @@ package io.blocktyper.theotherworlds;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputAdapter;
-import com.esotericsoftware.kryonet.Client;
 import io.blocktyper.theotherworlds.config.ButtonBinding;
 import io.blocktyper.theotherworlds.config.KeyBinding;
 import io.blocktyper.theotherworlds.server.auth.AuthUtils;
@@ -11,7 +10,6 @@ import io.blocktyper.theotherworlds.server.messaging.PerformActionRequest;
 
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Supplier;
 
 public class ClientInputAdapter extends InputAdapter {
 
@@ -25,13 +23,17 @@ public class ClientInputAdapter extends InputAdapter {
 
     TheOtherWorldsGame game;
     AuthUtils authUtils;
+    Input input;
+
+    String lastCommand = "setColor r=1 g=1 b=1";
 
     Optional<Map<String, KeyBinding>> globalKeyBindings;
     Optional<Map<String, ButtonBinding>> globalButtonBindings;
 
-    public ClientInputAdapter(TheOtherWorldsGame game, AuthUtils authUtils) {
+    public ClientInputAdapter(TheOtherWorldsGame game, AuthUtils authUtils, Input input) {
         this.game = game;
         this.authUtils = authUtils;
+        this.input = input;
         this.globalButtonBindings = Optional.ofNullable(game.config.gameModeButtonBindings.get("global"));
         this.globalKeyBindings = Optional.ofNullable(game.config.gameModeKeyBindings.get("global"));
     }
@@ -44,6 +46,31 @@ public class ClientInputAdapter extends InputAdapter {
 
     @Override
     public boolean keyUp(int keycode) {
+
+        if (keycode == Input.Keys.ENTER) {
+
+            input.getTextInput(
+                    new Input.TextInputListener() {
+                        @Override
+                        public void input(String command) {
+                            lastCommand = command;
+                            game.processCommand(command);
+                        }
+
+                        @Override
+                        public void canceled() {
+
+                        }
+                    },
+                    "Command",
+                    lastCommand,
+                    null
+            );
+
+            return true;
+        }
+
+
         sendKeyActions(Input.Keys.toString(keycode), game.config.gameModeKeyBindings(game.gameMode), true);
         return super.keyUp(keycode);
     }
