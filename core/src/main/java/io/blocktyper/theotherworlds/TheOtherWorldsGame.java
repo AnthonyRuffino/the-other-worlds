@@ -1,10 +1,8 @@
 package io.blocktyper.theotherworlds;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.Sprite;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.World;
@@ -30,7 +28,6 @@ import java.util.stream.Stream;
 public class TheOtherWorldsGame extends BaseGame {
 
     public static String DATA_DIRECTORY = "./.data/";
-    public static String SERVERS_DIRECTORY = DATA_DIRECTORY + "servers/";
     public static String USER_DATA_DIRECTORY = DATA_DIRECTORY + "users/";
 
     String host;
@@ -58,6 +55,7 @@ public class TheOtherWorldsGame extends BaseGame {
 
     TheOtherWorldsGameServer gameServer;
     AuthUtils authUtils;
+    String userName;
 
     float camOffset = 0f;
 
@@ -77,8 +75,6 @@ public class TheOtherWorldsGame extends BaseGame {
         this.clientWorld = new World(new Vector2(0, -1000), true);
 
         try {
-
-
 
 
             font = new BitmapFont();
@@ -267,7 +263,7 @@ public class TheOtherWorldsGame extends BaseGame {
 
     @NotNull
     public String getServersDirectory() {
-        return SERVERS_DIRECTORY + host + "/";
+        return USER_DATA_DIRECTORY + userName + "/" + host + "/";
     }
 
     @NotNull
