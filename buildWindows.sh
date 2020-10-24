@@ -7,6 +7,6 @@ java -jar packr-all-2.7.0.jar  \
        	--classpath desktop/build/libs/desktop-1.0.jar  \
     	--mainclass io.blocktyper.theotherworlds.desktop.DesktopLauncher  \
     	--vmargs Xmx1G  \
-    	--resources desktop/local_config.json  \
+    	--resources desktop/client_config.json  \
      	--minimizejre soft  \
     	--output windows

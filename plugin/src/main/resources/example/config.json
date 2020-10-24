@@ -1,4 +1,8 @@
 {
+  "enabled": true,
+  "collisionDamage": -50,
+  "classPath": "io.blocktyper.theotherworlds.plugin.PluginExample",
+  "controlBindings": {
     "gameModeKeyBindings": {
       "global": {
         "F11": {
@@ -63,7 +67,8 @@
       "menu": {
         "LEFT": {
           "hudAction": "select_hud_element"
-        },"RIGHT": {
+        },
+        "RIGHT": {
           "hudAction": "cancel_hud_element"
         },
         "MIDDLE": {

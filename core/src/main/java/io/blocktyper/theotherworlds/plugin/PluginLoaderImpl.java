@@ -6,16 +6,19 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.blocktyper.theotherworlds.plugin.utils.FileUtils;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class PluginLoaderImpl implements PluginLoader, PluginContactListener, PluginStaticWorldEntities, PluginEntityCreator {
+public class PluginLoaderImpl implements PluginLoader, PluginContactListener, PluginStaticWorldEntities, PluginEntityCreator, PluginControlBinding {
     PluginServer pluginServer;
     Map<String, Plugin> plugins = new HashMap<>();
     Map<String, EntityCreator> entityCreators;
+    String pluginsPath;
 
 
     @Override
@@ -34,6 +37,7 @@ public class PluginLoaderImpl implements PluginLoader, PluginContactListener, Pl
     }
 
     public PluginLoaderImpl(String pluginsPath, PluginServer pluginServer, boolean defaultOnly) {
+        this.pluginsPath = pluginsPath;
         this.pluginServer = pluginServer;
 
         if (defaultOnly) {
@@ -41,7 +45,7 @@ public class PluginLoaderImpl implements PluginLoader, PluginContactListener, Pl
             defaultPlugin.init(pluginServer, null);
             plugins.put("default", defaultPlugin);
         } else {
-            loadAllInstalledPlugins(pluginsPath, pluginServer);
+            System.out.println(loadAllInstalledPlugins() + " Plugins loaded...");
         }
 
         entityCreators = getPlugins().entrySet().stream()
@@ -51,18 +55,20 @@ public class PluginLoaderImpl implements PluginLoader, PluginContactListener, Pl
 
     }
 
-    private void loadAllInstalledPlugins(String pluginsPath, PluginServer pluginServer) {
-        ExtensionLoader<Plugin> loader = new ExtensionLoader<>();
-
+    private int loadAllInstalledPlugins() {
+        System.out.println("Loading plugins...");
         File pluginsDir = new File(pluginsPath);
-
+        if(pluginsDir == null || !pluginsDir.exists()) {
+            System.out.println("No plugins directory...");
+            return 0;
+        }
         for (File dir : pluginsDir.listFiles()) {
 
             if (dir.isDirectory()) {
                 String pluginName = dir.getName().toLowerCase();
                 System.out.println("Plugin located: " + pluginName);
-                String pluginRootPath = dir.getAbsolutePath() + "/" + pluginName;
-                String configRaw = FileUtils.getLocalFileString(pluginRootPath + "_config.json");
+                String pluginRootPath = dir.getAbsolutePath() + "/";
+                String configRaw = FileUtils.getLocalFileString(pluginRootPath + pluginName + "_config.json");
                 Optional<String> classPath = Optional.empty();
                 final JsonNode config;
                 boolean enabled = true;
@@ -83,27 +89,30 @@ public class PluginLoaderImpl implements PluginLoader, PluginContactListener, Pl
                             .map(JsonNode::textValue);
                 }
 
-                File pluginJar = new File(pluginRootPath + ".jar");
+                File pluginJar = new File(pluginRootPath + pluginName + ".jar");
                 if (!pluginJar.exists()) {
                     System.out.println("Jar not found for plugin: " + pluginName);
                     continue;
                 }
 
+                final ExtensionLoader<Plugin> loader = new ExtensionLoader<>();
                 final boolean enabledStatusBeforeLoading = enabled;
+
+
+                final PluginData pluginData = new PluginData(loader, pluginName, enabledStatusBeforeLoading, config, pluginRootPath);
+
                 loader.loadPlugin(pluginJar, Plugin.class, classPath)
-                        .ifPresentOrElse(plugin -> this.loadPlugin(pluginName, plugin, enabledStatusBeforeLoading, config, pluginRootPath),
+                        .ifPresentOrElse(plugin -> this.loadPlugin(plugin, pluginData),
                                 () -> System.out.println("Plugin could not be loaded: " + pluginName));
 
             }
         }
+        return plugins.size();
     }
 
-    private void loadPlugin(String pluginName, Plugin plugin, boolean enabledStatusBeforeLoading, JsonNode config, String pluginRootPath) {
-        if (plugin == null) {
-            System.out.println("Plugin could not be loaded: " + pluginName);
+    private void loadPlugin(Plugin plugin, PluginData pluginData) {
 
-        }
-        plugin.init(pluginServer, config);
+        plugin.init(pluginServer, pluginData.config);
         JsonNode mergedConfig = plugin.getConfig();
 
         if (mergedConfig == null) {
@@ -111,24 +120,52 @@ public class PluginLoaderImpl implements PluginLoader, PluginContactListener, Pl
         }
 
         try {
-            String json = FileUtils.OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(mergedConfig);
-            FileUtils.writeFile(pluginRootPath + "_config.json", json.getBytes());
+            String json = FileUtils.getPrettyString(mergedConfig);
+            FileUtils.writeFile(pluginData.pluginRootPath + pluginData.pluginName + "_config.json", json.getBytes());
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }
 
-        boolean enabled = enabledStatusBeforeLoading;
-        if (enabledStatusBeforeLoading) {
+        boolean enabled = pluginData.enabledStatusBeforeLoading;
+        if (pluginData.enabledStatusBeforeLoading) {
             enabled = Optional.ofNullable(mergedConfig.get("enabled"))
                     .map(JsonNode::booleanValue).orElse(true);
         }
 
         if (!enabled) {
-            System.out.println("Plugin disabled: " + pluginName);
+            System.out.println("Plugin disabled: " + pluginData.pluginName);
             return;
         }
 
-        plugins.put(pluginName, plugin);
-        System.out.println("Plugin loaded: " + pluginName);
+        plugins.put(pluginData.pluginName, plugin);
+        System.out.println("Plugin loaded: " + pluginData.pluginName);
+
+
+
+        String imageDirectory = "example/img";
+        pluginData.loader.getFileNamesInResourceDirectory(imageDirectory)
+                .forEach(fileName -> {
+                    String imagePath = pluginData.pluginRootPath + "img/" + fileName;
+                    if(!Files.exists(Paths.get(imagePath))) {
+                        FileUtils.writeFile(imagePath, pluginData.loader.getResourceAsStream(imageDirectory + "/" + fileName));
+                    }
+                });
+
+    }
+
+    private static class PluginData {
+        ExtensionLoader<Plugin> loader;
+        String pluginName;
+        boolean enabledStatusBeforeLoading;
+        JsonNode config;
+        String pluginRootPath;
+
+        public PluginData(ExtensionLoader<Plugin> loader, String pluginName, boolean enabledStatusBeforeLoading, JsonNode config, String pluginRootPath) {
+            this.loader = loader;
+            this.pluginName = pluginName;
+            this.enabledStatusBeforeLoading = enabledStatusBeforeLoading;
+            this.config = config;
+            this.pluginRootPath = pluginRootPath;
+        }
     }
 }

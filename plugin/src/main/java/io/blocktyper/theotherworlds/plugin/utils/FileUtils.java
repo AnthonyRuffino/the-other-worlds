@@ -1,5 +1,6 @@
 package io.blocktyper.theotherworlds.plugin.utils;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -28,19 +29,12 @@ public class FileUtils {
                 .setMergeable(false);
     }
 
-    public static <T> T getJsonNodeWithLocalOverride(
-            ClassLoader classLoader,
-            String defaultFromResources,
-            Optional<JsonNode> optionalLocalOverride,
-            Class<T> clazz
-    ) {
+    public static <T> Optional<T> deserializeJson(Class<T> clazz, JsonNode jsonNode) {
         try {
-
-            final JsonNode finalConfig = getJsonNodeWithLocalOverride(classLoader, defaultFromResources, optionalLocalOverride);
-
-            return finalConfig == null ? null : OBJECT_MAPPER.treeToValue(finalConfig, clazz);
-        } catch (Exception ex) {
-            throw new RuntimeException("Config issue: " + ex.getMessage(), ex);
+            return Optional.ofNullable(OBJECT_MAPPER.treeToValue(jsonNode, clazz));
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            return Optional.empty();
         }
     }
 
@@ -56,9 +50,9 @@ public class FileUtils {
 
             return optionalLocalOverride.flatMap(localOverride -> {
                 try {
-                    return defaults == null ? Optional.of(localOverride) : OBJECT_MAPPER.readerForUpdating(defaults).readValue(localOverride);
+                    return Optional.ofNullable(defaults == null ? localOverride : merge(defaults, localOverride));
                 } catch (Exception ex) {
-                    return Optional.<JsonNode>empty();
+                    return Optional.empty();
                 }
             }).orElse(defaults);
         } catch (Exception ex) {
@@ -66,20 +60,42 @@ public class FileUtils {
         }
     }
 
-    public static <T> T getJsonNodeWithLocalOverride(
+    public static JsonNode merge(JsonNode defaults, JsonNode localOverride) {
+        try {
+            return OBJECT_MAPPER.readerForUpdating(defaults).readValue(localOverride);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public static JsonNode merge(Object defaults, Optional<JsonNode> localOverride) {
+        JsonNode mappedDefaults = OBJECT_MAPPER.valueToTree(defaults);
+        return localOverride.map(l -> merge(mappedDefaults, l)).orElse(mappedDefaults);
+    }
+
+    public static String getPrettyString(JsonNode jsonNode) throws JsonProcessingException {
+        return OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(jsonNode);
+    }
+
+    public static <T> Optional<T> getJsonNodeWithLocalOverride(
             ClassLoader classLoader,
             String defaultFromResources,
-            String localOverride,
+            String localOverridePath,
             Class<T> clazz
     ) {
-        return getJsonNodeWithLocalOverride(
-                classLoader,
-                defaultFromResources,
-                Optional.ofNullable(FileUtils.getLocalFileString(localOverride))
-                        .filter(c -> !c.isBlank())
-                        .map(FileUtils::getJsonNodeFromRawString),
-                clazz
-        );
+
+        Optional<JsonNode> optionalLocalOverride = getLocalOverride(localOverridePath);
+
+        final JsonNode finalConfig = getJsonNodeWithLocalOverride(classLoader, defaultFromResources, optionalLocalOverride);
+
+        return Optional.ofNullable(finalConfig).flatMap(c -> deserializeJson(clazz, c));
+    }
+
+    public static Optional<JsonNode> getLocalOverride(String localOverridePath) {
+        return Optional.ofNullable(FileUtils.getLocalFileString(localOverridePath))
+                .filter(c -> !c.isBlank())
+                .map(FileUtils::getJsonNodeFromRawString);
     }
 
     public static JsonNode getJsonNodeFromRawString(String rawJsonString) throws RuntimeException {
@@ -134,18 +150,31 @@ public class FileUtils {
 
 
     public static void writeFile(String fileName, byte[] contents) {
+        if(contents == null) {
+            System.out.println("File contents were null: " + fileName);
+            return;
+        }
+
         try {
             Path path = Paths.get(fileName);
             Files.createDirectories(path.getParent());
             Files.write(path, contents);
-            //Files.createFile(path);
         } catch (Exception ex) {
             System.out.println("Exception writing file " + fileName + " " + ex.getMessage());
         }
     }
 
-    public static String cleanFileName(String badFileName) {
-        return cleanFileName(badFileName, true);
+    public static void writeFile(String fileName, InputStream inputStream) {
+        if(inputStream == null) {
+            System.out.println("Cant write file.  Input stream is null. fileName: " + fileName);
+            return;
+        }
+        try {
+            byte[] contents = inputStream.readAllBytes();
+            writeFile(fileName, contents);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public static String cleanFileName(String badFileName, boolean allowPaths) {
@@ -168,7 +197,6 @@ public class FileUtils {
                 cleanName.append((char) c);
             }
         }
-
 
         return cleanName.toString();
     }

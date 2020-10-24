@@ -3,10 +3,14 @@ package io.blocktyper.theotherworlds;
 import com.badlogic.gdx.Gdx;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Listener;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import io.blocktyper.theotherworlds.plugin.controls.ControlBindings;
 import io.blocktyper.theotherworlds.plugin.utils.FileUtils;
 import io.blocktyper.theotherworlds.server.auth.AuthUtils;
 import io.blocktyper.theotherworlds.server.messaging.*;
 
+import java.util.Optional;
 import java.util.Set;
 
 public class ClientListener extends Listener {
@@ -35,8 +39,8 @@ public class ClientListener extends Listener {
         } else if (object instanceof ConnectResponse) {
             ConnectResponse response = (ConnectResponse) object;
             System.out.println("Connect status: " + response.success);
-            if(response.success) {
-                game.userName = response.username;
+            if (response.success) {
+                game.username = response.username;
             }
             game.clearHudShapes();
             if (response.captcha != null) {
@@ -59,7 +63,27 @@ public class ClientListener extends Listener {
             }
         } else if (object instanceof ImageResponse) {
             ImageResponse imageResponse = (ImageResponse) object;
-            FileUtils.writeFile(game.getServersDirectory() + imageResponse.name, imageResponse.bytes);
+            if(imageResponse.bytes == null) {
+                game.missingSprites.add(imageResponse.name);
+            } else {
+                String fileName = game.getUsersServersDirectory() + imageResponse.name;
+                System.out.println("Saving image: " + fileName);
+                FileUtils.writeFile(fileName, imageResponse.bytes);
+            }
+        } else if (object instanceof ControlBindings) {
+            ControlBindings controlBindings = (ControlBindings) object;
+            String controlBindingsPath = game.getUsersServersDirectory() + controlBindings.pluginName + "/controlBindings.json";
+            Optional<JsonNode> localOverride = FileUtils.getLocalOverride(controlBindingsPath);
+
+            JsonNode mergedControlBindings = FileUtils.merge(controlBindings, localOverride);
+
+            try {
+                String json = FileUtils.getPrettyString(mergedControlBindings);
+                FileUtils.writeFile(controlBindingsPath, json.getBytes());
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+            }
+
         }
     }
 }

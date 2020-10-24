@@ -17,6 +17,8 @@ public class DesktopLauncher {
                 "default_client_config.json",
                 "./client_config.json",
                 RootConfig.class
+        ).orElseThrow(() ->
+            new RuntimeException("Unable to load client configs." )
         );
 
 //        config.lwjgl.setDisplayModeCallback = (originalConfig) -> {
@@ -30,9 +32,6 @@ public class DesktopLauncher {
         if (config.lwjgl.maxNetThreads < 0) {
             config.lwjgl.maxNetThreads = Integer.MAX_VALUE;
         }
-
-
-
 
 
         //new LwjglApplication(new TheOtherWorldsGame(config.gameConfig), new LwjglApplicationConfiguration());

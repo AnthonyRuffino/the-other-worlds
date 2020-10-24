@@ -5,6 +5,9 @@ import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.esotericsoftware.kryo.Kryo;
+import io.blocktyper.theotherworlds.plugin.controls.ButtonBinding;
+import io.blocktyper.theotherworlds.plugin.controls.ControlBindings;
+import io.blocktyper.theotherworlds.plugin.controls.KeyBinding;
 import io.blocktyper.theotherworlds.server.world.WorldEntityUpdate;
 import io.blocktyper.theotherworlds.visible.RelativeState;
 
@@ -18,6 +21,7 @@ public class KryoUtils {
         kryo.register(Set.class);
         kryo.register(HashSet.class);
         kryo.register(Optional.class);
+        kryo.register(LinkedHashMap.class);
 
         //Connection
         kryo.register(LoginRequest.class);
@@ -37,6 +41,9 @@ public class KryoUtils {
         kryo.register(Color.class);
 
         //User interaction
+        kryo.register(KeyBinding.class);
+        kryo.register(ButtonBinding.class);
+        kryo.register(ControlBindings.class);
         kryo.register(PerformActionRequest.class);
 
         //LibGDX

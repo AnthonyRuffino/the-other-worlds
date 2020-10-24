@@ -9,6 +9,7 @@ import com.esotericsoftware.kryonet.Server;
 import io.blocktyper.theotherworlds.plugin.PluginLoader;
 import io.blocktyper.theotherworlds.plugin.PluginLoaderImpl;
 import io.blocktyper.theotherworlds.plugin.PluginServer;
+import io.blocktyper.theotherworlds.plugin.controls.ControlBindings;
 import io.blocktyper.theotherworlds.server.messaging.KryoUtils;
 import io.blocktyper.theotherworlds.server.messaging.WorldEntityRemovals;
 import io.blocktyper.theotherworlds.server.messaging.WorldEntityUpdates;
@@ -35,6 +36,8 @@ public class TheOtherWorldsGameServer implements PluginServer {
     private Timer timer;
 
     PluginLoader pluginLoader;
+    Map<String, ControlBindings> pluginControlBindings;
+
     World world;
 
     Map<Integer, Set<String>> keysPressedPerConnection = new ConcurrentHashMap<>();
@@ -53,9 +56,9 @@ public class TheOtherWorldsGameServer implements PluginServer {
 
     public static final long TICK_DELAY_MS = 30l;
     public static float GRAVITY = -1000f;
-    public static float TARGET_DELTA = 1f / (1000/TICK_DELAY_MS);
+    public static float TARGET_DELTA = 1f / (1000 / TICK_DELAY_MS);
     private float accumulator = 0;
-    private float TARGET_ACCUMULATOR = TARGET_DELTA / ((30f/50f)*50L);
+    private float TARGET_ACCUMULATOR = TARGET_DELTA / ((30f / 50f) * 50L);
     long last_time = System.nanoTime();
 
 
@@ -69,6 +72,7 @@ public class TheOtherWorldsGameServer implements PluginServer {
 
             world = new World(new Vector2(0, GRAVITY), true);
             pluginLoader = new PluginLoaderImpl(CWD + "/plugins", this, false);
+            pluginControlBindings = pluginLoader.getControlBindings();
 
 
             world.setContactListener(pluginLoader.getContactListener());
@@ -275,6 +279,11 @@ public class TheOtherWorldsGameServer implements PluginServer {
         connection.sendTCP(new WorldEntityUpdates(
                 new ArrayList<>(getStaticEntitiesAsUpdates().values())
         ).setMissing(true));
+
+        pluginControlBindings.forEach((pluginName, controlBindings) ->
+                connection.sendTCP(controlBindings.setPluginName(pluginName))
+        );
+
         //connection.sendTCP(new HudUpdates(getHudElementUpdates(playerName)));
     }
 

@@ -7,8 +7,11 @@
 # Data directories
 **/.data/
 
+# plugins directory
+desktop/plugins/
+
 #local config
-local_config.json
+client_config.json
 
 # Avoid packr jar file
 !packr-all-2.7.0.jar

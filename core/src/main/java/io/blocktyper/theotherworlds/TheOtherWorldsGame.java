@@ -45,6 +45,7 @@ public class TheOtherWorldsGame extends BaseGame {
     private Timer reconnectionTimer;
 
 
+    final Set<String> missingSprites = new HashSet<>();
     private final Map<String, Sprite> spriteMap = new ConcurrentHashMap<>();
 
     private final List<WorldEntityUpdate> worldEntityUpdates = new ArrayList<>();
@@ -57,7 +58,7 @@ public class TheOtherWorldsGame extends BaseGame {
 
     TheOtherWorldsGameServer gameServer;
     AuthUtils authUtils;
-    String userName;
+    String username;
 
     float camOffset = 0f;
 
@@ -254,17 +255,21 @@ public class TheOtherWorldsGame extends BaseGame {
 
         if (Gdx.files.internal(spriteName).exists()) {
             return tryLoadSprite(spriteName);
-        } else if (Gdx.files.internal(getServersDirectory() + spriteName).exists()) {
-            return tryLoadSprite(getServersDirectory() + spriteName);
+        } else if (Gdx.files.internal(getUsersServersDirectory() + spriteName).exists()) {
+            return tryLoadSprite(getUsersServersDirectory() + spriteName);
         }
 
-        authUtils.getClient().sendTCP(new ImageRequest().setName(spriteName));
-        return SpriteUtils.newSprite("loading.png");
+        if (!missingSprites.contains(spriteName)) {
+            authUtils.getClient().sendTCP(new ImageRequest().setName(spriteName));
+            return SpriteUtils.newSprite("loading.png");
+        }
+
+        return SpriteUtils.newSprite("missing.png");
     }
 
     @NotNull
-    public String getServersDirectory() {
-        return USER_DATA_DIRECTORY + userName + "/" + host + "/";
+    public String getUsersServersDirectory() {
+        return USER_DATA_DIRECTORY + username + "/" + host + "/";
     }
 
     @NotNull

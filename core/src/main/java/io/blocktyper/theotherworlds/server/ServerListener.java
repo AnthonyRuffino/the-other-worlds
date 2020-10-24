@@ -42,15 +42,12 @@ public class ServerListener extends Listener {
 
     private void handleImageRequest(Connection connection, ImageRequest request) {
 
-        String fullPath = request.name;
-        String clientImageDirectory = PluginLoader.CLIENT_IMAGE_DIRECTORY;
-        String imageWithPluginName = fullPath.substring(fullPath.indexOf(clientImageDirectory) + clientImageDirectory.length());
-        int delimiterIndex = imageWithPluginName.indexOf("_");
-        String pluginName = imageWithPluginName.substring(0, delimiterIndex);
-        String imageName = imageWithPluginName.substring(delimiterIndex + 1);
-
-        byte[] imageBytes = FileUtils.getLocalFileBytes("plugins/" + pluginName + "/img/" + imageName);
-        connection.sendTCP(new ImageResponse().setName(fullPath).setBytes(imageBytes));
+        String imagePath = "plugins/" + request.name;
+        byte[] imageBytes = FileUtils.getLocalFileBytes(imagePath);
+        if(imageBytes == null) {
+            System.out.println("Missing image on server: " + imagePath);
+        }
+        connection.sendTCP(new ImageResponse().setName(request.name).setBytes(imageBytes));
     }
 
     private void handleMissingWorldEntities(Connection connection, MissingWorldEntities object) {
@@ -150,10 +147,14 @@ public class ServerListener extends Listener {
 
         if (response.success) {
             response.username = request.username;
-            server.handleConnect(connection, request.username);
         }
 
         connection.sendTCP(response);
+
+        if (response.success) {
+            server.handleConnect(connection, request.username);
+        }
+
     }
 
     private void generateCaptchaResponse(LoginRequest request, ConnectResponse response) {

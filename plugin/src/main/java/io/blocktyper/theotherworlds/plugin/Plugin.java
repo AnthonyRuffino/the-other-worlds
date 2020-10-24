@@ -2,17 +2,17 @@ package io.blocktyper.theotherworlds.plugin;
 
 import com.badlogic.gdx.physics.box2d.ContactListener;
 import com.fasterxml.jackson.databind.JsonNode;
-import io.blocktyper.theotherworlds.plugin.controls.ButtonBinding;
-import io.blocktyper.theotherworlds.plugin.controls.KeyBinding;
+import io.blocktyper.theotherworlds.plugin.controls.ControlBindings;
 import io.blocktyper.theotherworlds.plugin.entities.Thing;
+import io.blocktyper.theotherworlds.plugin.utils.FileUtils;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 public interface Plugin {
 
     void init(PluginServer pluginServer, JsonNode config);
+
     JsonNode getConfig();
 
     default List<ContactListener> getContactListeners() {
@@ -27,15 +27,13 @@ public interface Plugin {
         return Optional.empty();
     }
 
-    default Map<String, Map<String, ButtonBinding>> getGameModeButtonBindings() {
-        return Map.of("global", Map.of());
-    }
-
-    default Map<String, Map<String, KeyBinding>> gameModeKeyBindings() {
-        return Map.of("global", Map.of());
-    }
-
     default String getConfigResourcePath() {
-        return "config.json";
+        return "example/config.json";
+    }
+
+    default Optional<ControlBindings> getControlBindings() {
+        return Optional.ofNullable(getConfig()).flatMap(config ->
+                FileUtils.deserializeJson(ControlBindings.class, config.get("controlBindings"))
+        );
     }
 }

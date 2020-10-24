@@ -3,6 +3,7 @@ package io.blocktyper.theotherworlds.plugin;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.ContactListener;
 import com.badlogic.gdx.physics.box2d.World;
+import io.blocktyper.theotherworlds.plugin.controls.ControlBindings;
 import io.blocktyper.theotherworlds.plugin.entities.Thing;
 import io.blocktyper.theotherworlds.server.world.WorldEntity;
 
@@ -23,6 +24,8 @@ public interface PluginLoader {
 
     Map<String, EntityCreator> getEntityCreators();
 
+    Map<String, ControlBindings> getControlBindings();
+
     default WorldEntity thingToWorldEntity(Thing thing, String pluginName, BodyDef.BodyType bodyType) {
         return new WorldEntity(
                 pluginName + "_" + thing.getId(),
@@ -36,7 +39,7 @@ public interface PluginLoader {
                 thing.getFriction(),
                 thing.getRestitution(),
                 thing.getAngle(),
-                CLIENT_IMAGE_DIRECTORY + pluginName + "_" + thing.getSpriteName()
+                pluginName + "/" + CLIENT_IMAGE_DIRECTORY + thing.getSpriteName()
         ).setDeathTick(thing.getDeathTick()).setHealth(thing.getHealth());
     }
 }
