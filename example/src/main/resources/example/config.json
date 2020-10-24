@@ -1,7 +1,8 @@
 {
   "enabled": true,
   "collisionDamage": -50,
-  "classPath": "io.blocktyper.theotherworlds.plugin.PluginExample",
+  "lifeSpan": 5000,
+  "classPath": "example.PluginExample",
   "controlBindings": {
     "gameModeKeyBindings": {
       "global": {

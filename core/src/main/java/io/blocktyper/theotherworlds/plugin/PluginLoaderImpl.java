@@ -36,17 +36,11 @@ public class PluginLoaderImpl implements PluginLoader, PluginContactListener, Pl
         return pluginServer.getWorld();
     }
 
-    public PluginLoaderImpl(String pluginsPath, PluginServer pluginServer, boolean defaultOnly) {
+    public PluginLoaderImpl(String pluginsPath, PluginServer pluginServer) {
         this.pluginsPath = pluginsPath;
         this.pluginServer = pluginServer;
 
-        if (defaultOnly) {
-            Plugin defaultPlugin = new PluginExample();
-            defaultPlugin.init(pluginServer, null);
-            plugins.put("default", defaultPlugin);
-        } else {
-            System.out.println(loadAllInstalledPlugins() + " Plugins loaded...");
-        }
+        System.out.println(loadAllInstalledPlugins() + " Plugins loaded...");
 
         entityCreators = getPlugins().entrySet().stream()
                 .flatMap(plugin -> plugin.getValue().getEntityCreator()

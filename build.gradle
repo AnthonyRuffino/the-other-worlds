@@ -38,19 +38,24 @@ allprojects {
 project(":plugin") {
     apply plugin: "java-library"
 
-    def mainClassName = "io.blocktyper.theotherworlds.plugin.PluginExample"
+    dependencies {
+        api "com.badlogicgames.gdx:gdx-box2d:$gdxVersion"
+        compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.2'
+    }
+}
+
+
+project(":example") {
+    apply plugin: "java-library"
 
     jar {
-        manifest {
-            attributes "Main-Class": "$mainClassName"
-        }
-
         from {
             configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
         }
     }
 
     dependencies {
+        implementation project(":plugin")
         api "com.badlogicgames.gdx:gdx-box2d:$gdxVersion"
         compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.2'
     }

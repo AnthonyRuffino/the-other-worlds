@@ -1,10 +1,13 @@
-package io.blocktyper.theotherworlds.plugin;
+package example;
 
 import com.badlogic.gdx.physics.box2d.Contact;
 import com.badlogic.gdx.physics.box2d.ContactImpulse;
 import com.badlogic.gdx.physics.box2d.ContactListener;
 import com.badlogic.gdx.physics.box2d.Manifold;
 import com.fasterxml.jackson.databind.JsonNode;
+import io.blocktyper.theotherworlds.plugin.BasePlugin;
+import io.blocktyper.theotherworlds.plugin.EntityCreator;
+import io.blocktyper.theotherworlds.plugin.PluginServer;
 import io.blocktyper.theotherworlds.plugin.entities.Damageable;
 import io.blocktyper.theotherworlds.plugin.entities.Thing;
 
@@ -14,12 +17,14 @@ import java.util.Optional;
 public class PluginExample extends BasePlugin {
 
     private int damageAmount;
+    long lifeSpan = 1000;
 
     @Override
     public void init(PluginServer pluginServer, JsonNode config) {
         super.init(pluginServer, config);
 
         damageAmount = config != null ? Optional.ofNullable(config.get("collisionDamage")).map(JsonNode::intValue).orElse(-20) : -20;
+        lifeSpan = (config != null ? Optional.ofNullable(config.get("lifeSpan")).map(JsonNode::intValue).orElse(1000) : 1000)/pluginServer.getTickDelayMillis();
     }
 
     @Override
@@ -57,7 +62,6 @@ public class PluginExample extends BasePlugin {
 
     @Override
     public Optional<EntityCreator> getEntityCreator() {
-        long lifeSpan = (5 * 1000) / pluginServer.getTickDelayMillis();
         return Optional.of(() -> {
             long tick = pluginServer.getTick();
             if (tick % 10 == 0) {

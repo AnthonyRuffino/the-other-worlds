@@ -71,7 +71,7 @@ public class TheOtherWorldsGameServer implements PluginServer {
         try {
 
             world = new World(new Vector2(0, GRAVITY), true);
-            pluginLoader = new PluginLoaderImpl(CWD + "/plugins", this, false);
+            pluginLoader = new PluginLoaderImpl(CWD + "/plugins", this);
             pluginControlBindings = pluginLoader.getControlBindings();
 
 

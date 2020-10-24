@@ -69,7 +69,7 @@ public class ExtensionLoader<C> {
                     JarEntry entry = entries.nextElement();
                     String name = entry.getName();
                     if (name.startsWith(dirname) && !dirname.equals(name)) {
-                        URL resource = Thread.currentThread().getContextClassLoader().getResource(name);
+                        URL resource = classLoader.getResource(name);
                         String fullPathInJar = resource.toString();
                         filenames.add(fullPathInJar.substring(fullPathInJar.lastIndexOf("/") + 1));
                     }
