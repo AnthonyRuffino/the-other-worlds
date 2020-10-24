@@ -60,6 +60,8 @@ public class TheOtherWorldsGame extends BaseGame {
     AuthUtils authUtils;
     String username;
 
+    ClientInputAdapter clientInputAdapter;
+
     float camOffset = 0f;
 
 
@@ -86,7 +88,8 @@ public class TheOtherWorldsGame extends BaseGame {
             authUtils.setUpClient();
             authUtils.promptLogin(Gdx.input, USER_DATA_DIRECTORY);
 
-            Gdx.input.setInputProcessor(new ClientInputAdapter(this, authUtils, Gdx.input));
+            clientInputAdapter = new ClientInputAdapter(this, authUtils, Gdx.input);
+            Gdx.input.setInputProcessor(clientInputAdapter);
 
             scheduleReconnector();
 

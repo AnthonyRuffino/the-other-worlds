@@ -84,6 +84,11 @@ public class ClientListener extends Listener {
                 e.printStackTrace();
             }
 
+            FileUtils.deserializeJson(ControlBindings.class, mergedControlBindings).ifPresent(b -> {
+                game.clientInputAdapter.addControlBindingsConfig(b);
+                game.clientInputAdapter.remapControls();
+            });
+
         }
     }
 }

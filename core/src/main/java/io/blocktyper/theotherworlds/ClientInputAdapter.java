@@ -4,13 +4,15 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputAdapter;
 import io.blocktyper.theotherworlds.plugin.controls.ButtonBinding;
-import io.blocktyper.theotherworlds.config.GameConfig;
+import io.blocktyper.theotherworlds.plugin.controls.ControlBindings;
 import io.blocktyper.theotherworlds.plugin.controls.KeyBinding;
 import io.blocktyper.theotherworlds.server.auth.AuthUtils;
 import io.blocktyper.theotherworlds.server.messaging.PerformActionRequest;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class ClientInputAdapter extends InputAdapter {
 
@@ -28,8 +30,13 @@ public class ClientInputAdapter extends InputAdapter {
 
     String lastCommand = "setColor r=1 g=1 b=1";
 
-    Optional<Map<String, KeyBinding>> globalKeyBindings;
-    Optional<Map<String, ButtonBinding>> globalButtonBindings;
+    Map<String, ControlBindings> pluginControlBindings = new HashMap<>();
+
+    Optional<Map<String, List<KeyBinding>>> globalKeyBindings;
+    Optional<Map<String, List<ButtonBinding>>> globalButtonBindings;
+
+    Map<String, Map<String, List<KeyBinding>>> gameModeKeyBindings;
+    Map<String, Map<String, List<ButtonBinding>>> gameModeButtonBindings;
 
     public ClientInputAdapter(TheOtherWorldsGame game, AuthUtils authUtils, Input input) {
         this.game = game;
@@ -38,10 +45,53 @@ public class ClientInputAdapter extends InputAdapter {
 
     }
 
-    public void setGameConfig(GameConfig gameConfig) {
-        this.globalButtonBindings = Optional.ofNullable(gameConfig.gameModeButtonBindings.get("global"));
-        this.globalKeyBindings = Optional.ofNullable(gameConfig.gameModeKeyBindings.get("global"));
+    public void addControlBindingsConfig(ControlBindings controlBindings) {
+        this.pluginControlBindings.put(controlBindings.pluginName, controlBindings);
     }
+
+    synchronized public void remapControls() {
+        Map<String, List<Map<String, ButtonBinding>>> buttonBindings = remapAsListOfMaps(cb -> cb.gameModeButtonBindings);
+        Map<String, List<Map<String, KeyBinding>>> keyBindings = remapAsListOfMaps(cb -> cb.gameModeKeyBindings);
+
+        globalButtonBindings = Optional.ofNullable(buttonBindings.get("global")).map(this::groupBindingsByGameMode);
+        globalKeyBindings = Optional.ofNullable(keyBindings.get("global")).map(this::groupBindingsByGameMode);
+
+        gameModeButtonBindings = groupBindingsByGameMode(buttonBindings);
+        gameModeKeyBindings = groupBindingsByGameMode(keyBindings);
+    }
+
+    @NotNull
+    private <T> Map<String, List<T>> groupBindingsByGameMode(List<Map<String, T>> bindingsForGameMode) {
+        return bindingsForGameMode.stream()
+                .flatMap(map -> map.entrySet().stream())
+                .collect(Collectors.groupingBy(
+                        Map.Entry::getKey,
+                        Collectors.mapping(Map.Entry::getValue, Collectors.toList()))
+                );
+    }
+
+    private <T> Map<String, Map<String, List<T>>> groupBindingsByGameMode(Map<String, List<Map<String, T>>> bindings) {
+        return bindings.entrySet().stream()
+                .map(e -> new AbstractMap.SimpleEntry<>(e.getKey(), groupBindingsByGameMode(e.getValue())))
+                .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue, (a,b) -> {
+                    System.out.println("Unexpected conflict mapping bindings: ");
+                    return a;
+                }));
+    }
+
+
+
+    private <T> Map<String, List<Map<String, T>>> remapAsListOfMaps(Function<ControlBindings, Map<String, Map<String, T>>> f) {
+        return pluginControlBindings.values().stream()
+                .flatMap(controlBindings -> f.apply(controlBindings).entrySet().stream())
+                .collect(Collectors.groupingBy(
+                        Map.Entry::getKey,
+                        Collectors.mapping(
+                                Map.Entry::getValue, Collectors.toList()
+                        ))
+                );
+    }
+
 
     @Override
     public boolean keyDown(int keycode) {
@@ -133,7 +183,8 @@ public class ClientInputAdapter extends InputAdapter {
     }
 
     private Optional<ButtonBinding> getGlobalButtonBinding(String buttonCode) {
-        return Optional.ofNullable(globalButtonBindings).flatMap(gbb -> gbb.map(b -> b.get(buttonCode)));
+        //return Optional.ofNullable(globalButtonBindings).flatMap(gbb -> gbb.map(b -> b.get(buttonCode)));
+        return Optional.empty();
     }
 
     private Optional<ButtonBinding> getGameModeButtonBinding(String buttonCode) {
@@ -147,7 +198,8 @@ public class ClientInputAdapter extends InputAdapter {
     }
 
     private Optional<KeyBinding> getGlobalKeyBinding(String key) {
-        return Optional.ofNullable(globalKeyBindings).flatMap(gkbs -> gkbs.map(gmb -> gmb.get(key)));
+        //return Optional.ofNullable(globalKeyBindings).flatMap(gkbs -> gkbs.map(gmb -> gmb.get(key)));
+        return Optional.empty();
     }
 
 
