@@ -32,8 +32,8 @@ public class ClientInputAdapter extends InputAdapter {
 
     Map<String, ControlBindings> pluginControlBindings = new HashMap<>();
 
-    Optional<Map<String, List<KeyBinding>>> globalKeyBindings;
-    Optional<Map<String, List<ButtonBinding>>> globalButtonBindings;
+    Map<String, List<KeyBinding>> globalKeyBindings;
+    Map<String, List<ButtonBinding>> globalButtonBindings;
 
     Map<String, Map<String, List<KeyBinding>>> gameModeKeyBindings;
     Map<String, Map<String, List<ButtonBinding>>> gameModeButtonBindings;
@@ -53,8 +53,8 @@ public class ClientInputAdapter extends InputAdapter {
         Map<String, List<Map<String, ButtonBinding>>> buttonBindings = remapAsListOfMaps(cb -> cb.gameModeButtonBindings);
         Map<String, List<Map<String, KeyBinding>>> keyBindings = remapAsListOfMaps(cb -> cb.gameModeKeyBindings);
 
-        globalButtonBindings = Optional.ofNullable(buttonBindings.get("global")).map(this::groupBindingsByGameMode);
-        globalKeyBindings = Optional.ofNullable(keyBindings.get("global")).map(this::groupBindingsByGameMode);
+        globalButtonBindings = groupBindingsByGameMode(buttonBindings.get("global"));
+        globalKeyBindings = groupBindingsByGameMode(keyBindings.get("global"));
 
         gameModeButtonBindings = groupBindingsByGameMode(buttonBindings);
         gameModeKeyBindings = groupBindingsByGameMode(keyBindings);
@@ -73,12 +73,11 @@ public class ClientInputAdapter extends InputAdapter {
     private <T> Map<String, Map<String, List<T>>> groupBindingsByGameMode(Map<String, List<Map<String, T>>> bindings) {
         return bindings.entrySet().stream()
                 .map(e -> new AbstractMap.SimpleEntry<>(e.getKey(), groupBindingsByGameMode(e.getValue())))
-                .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue, (a,b) -> {
+                .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue, (a, b) -> {
                     System.out.println("Unexpected conflict mapping bindings: ");
                     return a;
                 }));
     }
-
 
 
     private <T> Map<String, List<Map<String, T>>> remapAsListOfMaps(Function<ControlBindings, Map<String, Map<String, T>>> f) {
@@ -94,15 +93,16 @@ public class ClientInputAdapter extends InputAdapter {
 
 
     @Override
-    public boolean keyDown(int keycode) {
-        sendKeyActions(Input.Keys.toString(keycode), getGameModeKeyBindings(), false);
-        return super.keyDown(keycode);
+    public boolean keyDown(int keyCode) {
+        String key = Input.Keys.toString(keyCode);
+        sendKeyActions(key, false);
+        return super.keyDown(keyCode);
     }
 
     @Override
-    public boolean keyUp(int keycode) {
+    public boolean keyUp(int keyCode) {
 
-        if (keycode == Input.Keys.ENTER) {
+        if (keyCode == Input.Keys.ENTER) {
 
             input.getTextInput(
                     new Input.TextInputListener() {
@@ -126,8 +126,8 @@ public class ClientInputAdapter extends InputAdapter {
         }
 
 
-        sendKeyActions(Input.Keys.toString(keycode), getGameModeKeyBindings(), true);
-        return super.keyUp(keycode);
+        sendKeyActions(Input.Keys.toString(keyCode), true);
+        return super.keyUp(keyCode);
     }
 
     @Override
@@ -145,76 +145,76 @@ public class ClientInputAdapter extends InputAdapter {
 
         final String buttonCode = BUTTON_CODE_MAP.get(button);
 
+        List<ButtonBinding> globalButtonBinding = getGlobalButtonBinding(buttonCode);
+        List<ButtonBinding> gameModeButtonBinding = getGameModeButtonBinding(buttonCode);
 
-        Optional<ButtonBinding> globalButtonBinding = getGlobalButtonBinding(buttonCode);
-        Optional<ButtonBinding> gameModeButtonBinding = getGameModeButtonBinding(buttonCode);
+        List<String> globalHudAction = globalButtonBinding.stream().map(b -> b.hudAction).collect(Collectors.toList());
+        List<String> gameModeHudAction = gameModeButtonBinding.stream().map(b -> b.hudAction).collect(Collectors.toList());
 
-        Optional<String> globalHudAction = globalButtonBinding.flatMap(b -> Optional.ofNullable(b.hudAction));
-        Optional<String> gameModeHudAction = gameModeButtonBinding.flatMap(b -> Optional.ofNullable(b.hudAction));
-
-
-//        if (globalHudAction.isPresent() || gameModeHudAction.isPresent()) {
-//            for (HudVisual hudVisual : game.hudVisuals.values()) {
-//                if (pointIsInRectangle(screenX, (game.HEIGHT() - screenY), hudVisual.x, hudVisual.width, hudVisual.y, hudVisual.height)) {
+//        if (globalHudAction.isEmpty() && gameModeHudAction.isEmpty()) {
+//            return false;
+//        }
+//        for (HudVisual hudVisual : game.hudVisuals.values()) {
+//            if (pointIsInRectangle(screenX, (game.HEIGHT() - screenY), hudVisual.x, hudVisual.width, hudVisual.y, hudVisual.height)) {
 //
-//                    globalHudAction.ifPresent(action -> {
-//                        System.out.println("GLOBAL: " + hudVisual.entityUpdate.getId());
-//                    });
+//                globalHudAction.ifPresent(action -> {
+//                    System.out.println("GLOBAL: " + hudVisual.entityUpdate.getId());
+//                });
 //
-//                    gameModeHudAction.ifPresent(action -> {
-//                        System.out.println("GameMode: " + hudVisual.entityUpdate.getId());
-//                        try {
-//                            PerformActionRequest request = new PerformActionRequest();
-//                            request.action = gameModeHudAction.get();
-//                            request.target = hudVisual.getHudElementUpdate().getId();
-//                            client.sendTCP(request);
-//                        } catch (Exception e) {
-//                            e.printStackTrace();
-//                            System.out.println("Unexpected exception sending command " + gameModeHudAction.get() + " " + hudVisual.getHudElementUpdate().getId() + ". Exception: " + e.getMessage());
-//                        }
-//                    });
+//                gameModeHudAction.ifPresent(action -> {
+//                    System.out.println("GameMode: " + hudVisual.entityUpdate.getId());
+//                    try {
+//                        PerformActionRequest request = new PerformActionRequest();
+//                        request.action = gameModeHudAction.get();
+//                        request.target = hudVisual.getHudElementUpdate().getId();
+//                        client.sendTCP(request);
+//                    } catch (Exception e) {
+//                        e.printStackTrace();
+//                        System.out.println("Unexpected exception sending command " + gameModeHudAction.get() + " " + hudVisual.getHudElementUpdate().getId() + ". Exception: " + e.getMessage());
+//                    }
+//                });
 //
-//                    return true;
-//                }
+//                return true;
 //            }
 //        }
 
         return false;
     }
 
-    private Optional<ButtonBinding> getGlobalButtonBinding(String buttonCode) {
-        //return Optional.ofNullable(globalButtonBindings).flatMap(gbb -> gbb.map(b -> b.get(buttonCode)));
-        return Optional.empty();
+    private List<ButtonBinding> getGlobalButtonBinding(String buttonCode) {
+        return getSafeBindings(globalButtonBindings, buttonCode);
     }
 
-    private Optional<ButtonBinding> getGameModeButtonBinding(String buttonCode) {
-        return Optional.ofNullable(game.gameConfig)
-                .flatMap(gameConfig -> gameConfig.gameModeButtonBindings(game.gameMode).map(b -> b.get(buttonCode)));
+    private List<KeyBinding> getGlobalKeyBinding(String keyCode) {
+        return getSafeBindings(globalKeyBindings, keyCode);
     }
 
-    private Optional<Map<String, KeyBinding>> getGameModeKeyBindings() {
-        return Optional.ofNullable(game.gameConfig)
-                .flatMap(gameConfig -> gameConfig.gameModeKeyBindings(game.gameMode));
+    private List<ButtonBinding> getGameModeButtonBinding(String buttonCode) {
+        return Optional.ofNullable(gameModeButtonBindings)
+                .map(gmbb -> getSafeBindings(gmbb.get(game.gameMode), buttonCode)).orElse(List.of());
     }
 
-    private Optional<KeyBinding> getGlobalKeyBinding(String key) {
-        //return Optional.ofNullable(globalKeyBindings).flatMap(gkbs -> gkbs.map(gmb -> gmb.get(key)));
-        return Optional.empty();
+    private List<KeyBinding> getGameModeKeyBindings(String keyCode) {
+        return Optional.ofNullable(gameModeKeyBindings)
+                .map(gmbb -> getSafeBindings(gmbb.get(game.gameMode), keyCode)).orElse(List.of());
     }
 
+    private <T> List<T> getSafeBindings(Map<String, List<T>> map, String keyCode) {
+        return Optional.ofNullable(map).map(kb -> kb.get(keyCode)).orElse(List.of());
+    }
 
-    void sendKeyActions(String key, Optional<Map<String, KeyBinding>> gameModeKeyBindings, boolean isCancel) {
-        Optional<KeyBinding> globalKeyBinding = getGlobalKeyBinding(key);
-        Optional<KeyBinding> gameModeKeyBinding = gameModeKeyBindings.map(gmb -> gmb.get(key));
+    void sendKeyActions(String keyCode, boolean isCancel) {
+        List<KeyBinding> globalKeyBinding = getGlobalKeyBinding(keyCode);
+        List<KeyBinding> gameModeKeyBinding = getGameModeKeyBindings(keyCode);
 
-        globalKeyBinding.ifPresent(keyBinding -> {
+        globalKeyBinding.forEach(keyBinding -> {
             PerformActionRequest request = new PerformActionRequest();
             request.action = keyBinding.listenerAction;
             request.cancel = isCancel;
             authUtils.getClient().sendTCP(request);
         });
 
-        gameModeKeyBinding.ifPresent(keyBinding -> {
+        gameModeKeyBinding.forEach(keyBinding -> {
             PerformActionRequest request = new PerformActionRequest();
             request.action = keyBinding.listenerAction;
             request.cancel = isCancel;

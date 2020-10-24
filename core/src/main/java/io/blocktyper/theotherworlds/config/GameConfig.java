@@ -2,19 +2,14 @@ package io.blocktyper.theotherworlds.config;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.JsonNode;
-import io.blocktyper.theotherworlds.plugin.controls.ButtonBinding;
-import io.blocktyper.theotherworlds.plugin.controls.KeyBinding;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class GameConfig {
     public JsonNode gameModeSettings;
-    public Map<String, Map<String, ButtonBinding>> gameModeButtonBindings;
-    public Map<String, Map<String, KeyBinding>> gameModeKeyBindings;
     public boolean startServer = true;
     public String host = "localhost";
 
@@ -86,13 +81,5 @@ public class GameConfig {
             return Optional.empty();
         }
         return Optional.of(node);
-    }
-
-    public Optional<Map<String, KeyBinding>> gameModeKeyBindings(String gameMode) {
-        return Optional.ofNullable(gameModeKeyBindings.get(gameMode));
-    }
-
-    public Optional<Map<String, ButtonBinding>> gameModeButtonBindings(String gameMode) {
-        return Optional.ofNullable(gameModeButtonBindings.get(gameMode));
     }
 }

@@ -27,11 +27,8 @@ public class ClientInputAdapterTest {
         clientInputAdapterTest.addControlBindingsConfig(getControlBindings(2));
         clientInputAdapterTest.remapControls();
 
-        assert clientInputAdapterTest.globalButtonBindings.isPresent();
-        checkBindings(clientInputAdapterTest.globalButtonBindings.get(), (a) -> a.hudAction, (a) -> a.worldAction, "global");
-
-        assert clientInputAdapterTest.globalKeyBindings.isPresent();
-        checkBindings(clientInputAdapterTest.globalKeyBindings.get(), (a) -> a.listenerAction, (a) -> a.checkedAction, "global");
+        checkBindings(clientInputAdapterTest.globalButtonBindings, (a) -> a.hudAction, (a) -> a.worldAction, "global");
+        checkBindings(clientInputAdapterTest.globalKeyBindings, (a) -> a.listenerAction, (a) -> a.checkedAction, "global");
 
         clientInputAdapterTest.gameModeButtonBindings.forEach((gameMode, bb) ->
             checkBindings(bb, (a) -> a.hudAction, (a) -> a.worldAction, gameMode)
