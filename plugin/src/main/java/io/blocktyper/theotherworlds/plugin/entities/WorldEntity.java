@@ -1,8 +1,7 @@
-package io.blocktyper.theotherworlds.server.world;
+package io.blocktyper.theotherworlds.plugin.entities;
 
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
-import io.blocktyper.theotherworlds.plugin.entities.Damageable;
 
 import java.util.Map;
 

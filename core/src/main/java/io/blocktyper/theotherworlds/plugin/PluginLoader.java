@@ -5,7 +5,8 @@ import com.badlogic.gdx.physics.box2d.ContactListener;
 import com.badlogic.gdx.physics.box2d.World;
 import io.blocktyper.theotherworlds.plugin.controls.ControlBindings;
 import io.blocktyper.theotherworlds.plugin.entities.Thing;
-import io.blocktyper.theotherworlds.server.world.WorldEntity;
+import io.blocktyper.theotherworlds.plugin.entities.WorldEntity;
+import io.blocktyper.theotherworlds.server.messaging.PerformActionRequest;
 
 import java.util.Map;
 
@@ -25,6 +26,8 @@ public interface PluginLoader {
     Map<String, EntityCreator> getEntityCreators();
 
     Map<String, ControlBindings> getControlBindings();
+
+    void handleActions(String player, PerformActionRequest performActionRequest);
 
     default WorldEntity thingToWorldEntity(Thing thing, String pluginName, BodyDef.BodyType bodyType) {
         return new WorldEntity(

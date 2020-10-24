@@ -77,6 +77,8 @@ public class ServerListener extends Listener {
             Set<String> keysPressed = server.keysPressedPerConnection
                     .computeIfAbsent(connection.getID(), k -> ConcurrentHashMap.newKeySet());
 
+            server.pluginLoader.handleActions(server.playerNameMap.get(connection.getID()), request);
+
             if (request.cancel) {
                 keysPressed.remove(request.action);
             } else {

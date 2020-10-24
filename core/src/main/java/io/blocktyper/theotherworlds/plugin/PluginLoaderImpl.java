@@ -3,15 +3,15 @@ package io.blocktyper.theotherworlds.plugin;
 import com.badlogic.gdx.physics.box2d.World;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import io.blocktyper.theotherworlds.plugin.actions.ActionListener;
+import io.blocktyper.theotherworlds.plugin.actions.PlayerAction;
 import io.blocktyper.theotherworlds.plugin.utils.FileUtils;
+import io.blocktyper.theotherworlds.server.messaging.PerformActionRequest;
 
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.AbstractMap;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class PluginLoaderImpl implements PluginLoader, PluginContactListener, PluginStaticWorldEntities, PluginEntityCreator, PluginControlBinding {
@@ -19,11 +19,22 @@ public class PluginLoaderImpl implements PluginLoader, PluginContactListener, Pl
     Map<String, Plugin> plugins = new HashMap<>();
     Map<String, EntityCreator> entityCreators;
     String pluginsPath;
+    Map<String, List<ActionListener>> actionListeners;
 
 
     @Override
     public Map<String, EntityCreator> getEntityCreators() {
         return entityCreators;
+    }
+
+    @Override
+    public void handleActions(String player, PerformActionRequest performActionRequest) {
+        Optional.ofNullable(actionListeners.get(performActionRequest.action))
+                .ifPresent(listeners ->
+                        listeners.forEach(listener ->
+                                listener.process(List.of(new PlayerAction(player, performActionRequest.action, performActionRequest.target, performActionRequest.cancel)))
+                        )
+                );
     }
 
     @Override
@@ -47,12 +58,24 @@ public class PluginLoaderImpl implements PluginLoader, PluginContactListener, Pl
                         .map(ec -> new AbstractMap.SimpleEntry<>(plugin.getKey(), ec)).stream())
                 .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue, (a, b) -> a));
 
+        actionListeners = getPlugins().values().stream()
+                .flatMap(plugin -> plugin.getActionListener().stream())
+                .flatMap(actionListener ->
+                        actionListener.getInterests().stream().map(interest ->
+                                new AbstractMap.SimpleEntry<>(interest, actionListener)
+                        )
+                )
+                .collect(Collectors.groupingBy(
+                        Map.Entry::getKey,
+                        Collectors.mapping(Map.Entry::getValue, Collectors.toList()))
+                );
+
     }
 
     private int loadAllInstalledPlugins() {
         System.out.println("Loading plugins...");
         File pluginsDir = new File(pluginsPath);
-        if(pluginsDir == null || !pluginsDir.exists()) {
+        if (pluginsDir == null || !pluginsDir.exists()) {
             System.out.println("No plugins directory...");
             return 0;
         }
@@ -135,12 +158,11 @@ public class PluginLoaderImpl implements PluginLoader, PluginContactListener, Pl
         System.out.println("Plugin loaded: " + pluginData.pluginName);
 
 
-
         String imageDirectory = "example/img";
         pluginData.loader.getFileNamesInResourceDirectory(imageDirectory)
                 .forEach(fileName -> {
                     String imagePath = pluginData.pluginRootPath + "img/" + fileName;
-                    if(!Files.exists(Paths.get(imagePath))) {
+                    if (!Files.exists(Paths.get(imagePath))) {
                         FileUtils.writeFile(imagePath, pluginData.loader.getResourceAsStream(imageDirectory + "/" + fileName));
                     }
                 });

@@ -2,6 +2,7 @@ package io.blocktyper.theotherworlds.plugin;
 
 import com.badlogic.gdx.physics.box2d.ContactListener;
 import com.fasterxml.jackson.databind.JsonNode;
+import io.blocktyper.theotherworlds.plugin.actions.ActionListener;
 import io.blocktyper.theotherworlds.plugin.controls.ControlBindings;
 import io.blocktyper.theotherworlds.plugin.entities.Thing;
 import io.blocktyper.theotherworlds.plugin.utils.FileUtils;
@@ -29,6 +30,10 @@ public interface Plugin {
 
     default String getConfigResourcePath() {
         return "example/config.json";
+    }
+
+    default Optional<ActionListener> getActionListener() {
+        return Optional.empty();
     }
 
     default Optional<ControlBindings> getControlBindings() {

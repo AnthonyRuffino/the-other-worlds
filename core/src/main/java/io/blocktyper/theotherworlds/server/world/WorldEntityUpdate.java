@@ -7,6 +7,7 @@ import com.badlogic.gdx.utils.NumberUtils;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
+import io.blocktyper.theotherworlds.plugin.entities.WorldEntity;
 
 public class WorldEntityUpdate {
 

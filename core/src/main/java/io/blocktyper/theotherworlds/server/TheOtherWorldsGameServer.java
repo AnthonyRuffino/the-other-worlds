@@ -10,10 +10,10 @@ import io.blocktyper.theotherworlds.plugin.PluginLoader;
 import io.blocktyper.theotherworlds.plugin.PluginLoaderImpl;
 import io.blocktyper.theotherworlds.plugin.PluginServer;
 import io.blocktyper.theotherworlds.plugin.controls.ControlBindings;
+import io.blocktyper.theotherworlds.plugin.entities.WorldEntity;
 import io.blocktyper.theotherworlds.server.messaging.KryoUtils;
 import io.blocktyper.theotherworlds.server.messaging.WorldEntityRemovals;
 import io.blocktyper.theotherworlds.server.messaging.WorldEntityUpdates;
-import io.blocktyper.theotherworlds.server.world.WorldEntity;
 import io.blocktyper.theotherworlds.server.world.WorldEntityUpdate;
 import org.jetbrains.annotations.NotNull;
 
@@ -270,6 +270,9 @@ public class TheOtherWorldsGameServer implements PluginServer {
                 .collect(Collectors.toMap(WorldEntityUpdate::getId, value -> value));
     }
 
+    public Map<String, WorldEntity> getDynamicEntities() {
+        return dynamicEntities;
+    }
 
     void handleConnect(Connection connection, String playerName) {
         playerMap.put(connection.getID(), playerName);

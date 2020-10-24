@@ -1,7 +1,7 @@
 package io.blocktyper.theotherworlds.plugin;
 
 import com.badlogic.gdx.physics.box2d.BodyDef;
-import io.blocktyper.theotherworlds.server.world.WorldEntity;
+import io.blocktyper.theotherworlds.plugin.entities.WorldEntity;
 
 import java.util.Map;
 import java.util.stream.Collectors;

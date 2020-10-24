@@ -12,7 +12,7 @@ import io.blocktyper.theotherworlds.server.TheOtherWorldsGameServer;
 import io.blocktyper.theotherworlds.server.auth.AuthUtils;
 import io.blocktyper.theotherworlds.server.messaging.Drawable;
 import io.blocktyper.theotherworlds.server.messaging.ImageRequest;
-import io.blocktyper.theotherworlds.server.world.WorldEntity;
+import io.blocktyper.theotherworlds.plugin.entities.WorldEntity;
 import io.blocktyper.theotherworlds.server.world.WorldEntityUpdate;
 import io.blocktyper.theotherworlds.visible.RelativeState;
 import io.blocktyper.theotherworlds.visible.SpriteUtils;

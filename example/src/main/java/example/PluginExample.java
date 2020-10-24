@@ -1,5 +1,6 @@
 package example;
 
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Contact;
 import com.badlogic.gdx.physics.box2d.ContactImpulse;
 import com.badlogic.gdx.physics.box2d.ContactListener;
@@ -8,23 +9,28 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.blocktyper.theotherworlds.plugin.BasePlugin;
 import io.blocktyper.theotherworlds.plugin.EntityCreator;
 import io.blocktyper.theotherworlds.plugin.PluginServer;
+import io.blocktyper.theotherworlds.plugin.actions.ActionListener;
+import io.blocktyper.theotherworlds.plugin.actions.PlayerAction;
 import io.blocktyper.theotherworlds.plugin.entities.Damageable;
 import io.blocktyper.theotherworlds.plugin.entities.Thing;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
-public class PluginExample extends BasePlugin {
+public class PluginExample extends BasePlugin implements ActionListener {
 
     private int damageAmount;
     long lifeSpan = 1000;
+
+    private Set<String> INTERESTS = Set.of("forward", "left", "back", "right");
 
     @Override
     public void init(PluginServer pluginServer, JsonNode config) {
         super.init(pluginServer, config);
 
         damageAmount = config != null ? Optional.ofNullable(config.get("collisionDamage")).map(JsonNode::intValue).orElse(-20) : -20;
-        lifeSpan = (config != null ? Optional.ofNullable(config.get("lifeSpan")).map(JsonNode::intValue).orElse(1000) : 1000)/pluginServer.getTickDelayMillis();
+        lifeSpan = (config != null ? Optional.ofNullable(config.get("lifeSpan")).map(JsonNode::intValue).orElse(1000) : 1000) / pluginServer.getTickDelayMillis();
     }
 
     @Override
@@ -66,7 +72,21 @@ public class PluginExample extends BasePlugin {
             long tick = pluginServer.getTick();
             if (tick % 10 == 0) {
 
-                String entityId = "e_" + tick;
+                final String entityId;
+                final Integer health;
+                final Long deathTick;
+                final String img;
+                if (tick == 500) {
+                    img = "morgan-blocksky.png";
+                    health = null;
+                    deathTick = null;
+                    entityId = "player_a";
+                } else {
+                    img = "sun.jpg";
+                    health = 150;
+                    deathTick = tick + lifeSpan;
+                    entityId = "e_" + tick;
+                }
 
                 return List.of(new Thing() {
                     @Override
@@ -76,7 +96,7 @@ public class PluginExample extends BasePlugin {
 
                     @Override
                     public String getSpriteName() {
-                        return "sun.jpg";
+                        return img;
                     }
 
                     @Override
@@ -121,12 +141,12 @@ public class PluginExample extends BasePlugin {
 
                     @Override
                     public Long getDeathTick() {
-                        return tick + lifeSpan;
+                        return deathTick;
                     }
 
                     @Override
                     public Integer getHealth() {
-                        return 150;
+                        return health;
                     }
                 });
             }
@@ -188,5 +208,34 @@ public class PluginExample extends BasePlugin {
                 return 0;
             }
         });
+    }
+
+    @Override
+    public Optional<ActionListener> getActionListener() {
+        return Optional.of(this);
+    }
+
+    @Override
+    public Set<String> getInterests() {
+        return INTERESTS;
+    }
+
+    @Override
+    public void process(List<PlayerAction> actions) {
+        actions.forEach(action ->
+            Optional.ofNullable(pluginServer.getDynamicEntities().get("example_player_" + action.player))
+            .ifPresent(p -> {
+                if ("forward".equals(action.actionName)) {
+                    //p.getBody().applyForceToCenter(new Vector2(1000,100000), true);
+                    p.getBody().setLinearVelocity(new Vector2(0,100000));
+                } else if ("left".equals(action.actionName)) {
+                    p.getBody().setLinearVelocity(new Vector2(-1000,0));
+                } else if ("back".equals(action.actionName)) {
+                    p.getBody().setLinearVelocity(new Vector2(0,-100000));
+                } else if ("right".equals(action.actionName)) {
+                    p.getBody().setLinearVelocity(new Vector2(1000,0));
+                }
+            })
+        );
     }
 }
