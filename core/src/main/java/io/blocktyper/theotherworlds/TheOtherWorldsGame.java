@@ -46,6 +46,7 @@ public class TheOtherWorldsGame extends BaseGame {
 
 
     final Set<String> missingSprites = new HashSet<>();
+    final Set<String> requestedSprites = new HashSet<>();
     private final Map<String, Sprite> spriteMap = new ConcurrentHashMap<>();
 
     private final List<WorldEntityUpdate> worldEntityUpdates = new ArrayList<>();
@@ -263,7 +264,11 @@ public class TheOtherWorldsGame extends BaseGame {
         }
 
         if (!missingSprites.contains(spriteName)) {
-            authUtils.getClient().sendTCP(new ImageRequest().setName(spriteName));
+            if(!requestedSprites.contains(spriteName)) {
+                requestedSprites.add(spriteName);
+                System.out.println("Requesting sprite: " + spriteName);
+                authUtils.getClient().sendTCP(new ImageRequest().setName(spriteName));
+            }
             return SpriteUtils.newSprite("loading.png");
         }
 

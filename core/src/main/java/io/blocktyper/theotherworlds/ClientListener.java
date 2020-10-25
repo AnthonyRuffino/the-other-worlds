@@ -68,6 +68,7 @@ public class ClientListener extends Listener {
             } else {
                 String fileName = game.getUsersServersDirectory() + imageResponse.name;
                 System.out.println("Saving image: " + fileName);
+                game.requestedSprites.remove(imageResponse.name);
                 FileUtils.writeFile(fileName, imageResponse.bytes);
             }
         } else if (object instanceof ControlBindings) {
