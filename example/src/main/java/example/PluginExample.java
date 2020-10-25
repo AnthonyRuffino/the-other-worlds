@@ -26,8 +26,8 @@ public class PluginExample extends BasePlugin implements ActionListener {
     private Set<String> INTERESTS = Set.of("forward", "left", "back", "right");
 
     @Override
-    public void init(PluginServer pluginServer, JsonNode config) {
-        super.init(pluginServer, config);
+    public void init(String pluginName, PluginServer pluginServer, JsonNode config) {
+        super.init(pluginName, pluginServer, config);
 
         damageAmount = config != null ? Optional.ofNullable(config.get("collisionDamage")).map(JsonNode::intValue).orElse(-20) : -20;
         lifeSpan = (config != null ? Optional.ofNullable(config.get("lifeSpan")).map(JsonNode::intValue).orElse(1000) : 1000) / pluginServer.getTickDelayMillis();

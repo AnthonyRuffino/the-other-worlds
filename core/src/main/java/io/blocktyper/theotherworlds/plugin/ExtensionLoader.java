@@ -25,7 +25,7 @@ public class ExtensionLoader<C> {
 
     ClassLoader classLoader;
 
-    public Optional<C> loadPlugin(File jar, Class<C> parentClass, Optional<String> optionalClasspath) throws RuntimeException {
+    public Optional<C> loadPlugin(File jar, String pluginName, Class<C> parentClass, Optional<String> optionalClasspath) throws RuntimeException {
         try {
             classLoader = URLClassLoader.newInstance(
                     new URL[]{jar.toURL()},
@@ -35,7 +35,7 @@ public class ExtensionLoader<C> {
             return optionalClasspath
                     .map((classPath) -> getPluginInstance(parentClass, classPath))
                     .orElseGet(() ->
-                            Optional.ofNullable(classLoader.getResourceAsStream("example/config.json"))
+                            Optional.ofNullable(classLoader.getResourceAsStream(pluginName + "/config.json"))
                                     .map(FileUtils::inputStringToString)
                                     .map(FileUtils::getJsonNodeFromRawString)
                                     .map(jsonNode -> jsonNode.get("classPath"))

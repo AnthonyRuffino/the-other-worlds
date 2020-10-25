@@ -12,7 +12,9 @@ import java.util.Optional;
 
 public interface Plugin {
 
-    void init(PluginServer pluginServer, JsonNode config);
+    String CONFIG_NAME = "config.json";
+
+    void init(String pluginName, PluginServer pluginServer, JsonNode config);
 
     JsonNode getConfig();
 
@@ -26,10 +28,6 @@ public interface Plugin {
 
     default Optional<EntityCreator> getEntityCreator() {
         return Optional.empty();
-    }
-
-    default String getConfigResourcePath() {
-        return "example/config.json";
     }
 
     default Optional<ActionListener> getActionListener() {

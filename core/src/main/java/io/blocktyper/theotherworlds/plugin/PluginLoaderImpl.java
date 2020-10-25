@@ -118,7 +118,7 @@ public class PluginLoaderImpl implements PluginLoader, PluginContactListener, Pl
 
                 final PluginData pluginData = new PluginData(loader, pluginName, enabledStatusBeforeLoading, config, pluginRootPath);
 
-                loader.loadPlugin(pluginJar, Plugin.class, classPath)
+                loader.loadPlugin(pluginJar, pluginName, Plugin.class, classPath)
                         .ifPresentOrElse(plugin -> this.loadPlugin(plugin, pluginData),
                                 () -> System.out.println("Plugin could not be loaded: " + pluginName));
 
@@ -129,7 +129,7 @@ public class PluginLoaderImpl implements PluginLoader, PluginContactListener, Pl
 
     private void loadPlugin(Plugin plugin, PluginData pluginData) {
 
-        plugin.init(pluginServer, pluginData.config);
+        plugin.init(pluginData.pluginName, pluginServer, pluginData.config);
         JsonNode mergedConfig = plugin.getConfig();
 
         if (mergedConfig == null) {
@@ -158,7 +158,7 @@ public class PluginLoaderImpl implements PluginLoader, PluginContactListener, Pl
         System.out.println("Plugin loaded: " + pluginData.pluginName);
 
 
-        String imageDirectory = "example/img";
+        String imageDirectory = pluginData.pluginName + "/img";
         pluginData.loader.getFileNamesInResourceDirectory(imageDirectory)
                 .forEach(fileName -> {
                     String imagePath = pluginData.pluginRootPath + "img/" + fileName;

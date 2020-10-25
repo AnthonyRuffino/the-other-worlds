@@ -6,15 +6,17 @@ import io.blocktyper.theotherworlds.plugin.utils.FileUtils;
 import java.util.Optional;
 
 public abstract class BasePlugin implements Plugin {
+    protected String pluginName;
     protected PluginServer pluginServer;
     protected JsonNode config;
 
     @Override
-    public void init(PluginServer pluginServer, JsonNode config) {
+    public void init(String pluginName, PluginServer pluginServer, JsonNode config) {
+        this.pluginName = pluginName;
         this.pluginServer = pluginServer;
         this.config = FileUtils.getJsonNodeWithLocalOverride(
                 getClass().getClassLoader(),
-                getConfigResourcePath(),
+                pluginName + "/" + Plugin.CONFIG_NAME,
                 Optional.ofNullable(config)
         );
     }
