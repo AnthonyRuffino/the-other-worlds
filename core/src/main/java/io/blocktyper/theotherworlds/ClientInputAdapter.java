@@ -3,6 +3,10 @@ package io.blocktyper.theotherworlds;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputAdapter;
+import com.badlogic.gdx.controllers.Controller;
+import com.badlogic.gdx.controllers.ControllerListener;
+import com.badlogic.gdx.controllers.PovDirection;
+import com.badlogic.gdx.math.Vector3;
 import io.blocktyper.theotherworlds.plugin.controls.ButtonBinding;
 import io.blocktyper.theotherworlds.plugin.controls.ControlBindings;
 import io.blocktyper.theotherworlds.plugin.controls.KeyBinding;
@@ -14,7 +18,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class ClientInputAdapter extends InputAdapter {
+public class ClientInputAdapter extends InputAdapter implements ControllerListener {
 
     public static Map<Integer, String> BUTTON_CODE_MAP = Map.of(
             Input.Buttons.LEFT, "LEFT",
@@ -102,29 +106,10 @@ public class ClientInputAdapter extends InputAdapter {
     @Override
     public boolean keyUp(int keyCode) {
 
-        if (keyCode == Input.Keys.ENTER) {
-
-            input.getTextInput(
-                    new Input.TextInputListener() {
-                        @Override
-                        public void input(String command) {
-                            lastCommand = command;
-                            game.processCommand(command);
-                        }
-
-                        @Override
-                        public void canceled() {
-
-                        }
-                    },
-                    "Command",
-                    lastCommand,
-                    null
-            );
-
+        if (keyCode == Input.Keys.ENTER && Gdx.input.getInputProcessor() != game.stage) {
+            game.useStageInputProcessor();
             return true;
         }
-
 
         sendKeyActions(Input.Keys.toString(keyCode), true);
         return super.keyUp(keyCode);
@@ -224,5 +209,78 @@ public class ClientInputAdapter extends InputAdapter {
 
     boolean pointIsInRectangle(float pointX, float pointY, float rectangleX, float rectangleWidth, float rectangleY, float rectangleHeight) {
         return pointX > rectangleX && pointX < (rectangleX + rectangleWidth) && pointY > rectangleY && pointY < (rectangleY + rectangleHeight);
+    }
+
+
+    @Override
+    public void connected(Controller controller) {
+        System.out.println("Controller connected");
+    }
+
+    @Override
+    public void disconnected(Controller controller) {
+        System.out.println("Controller ");
+    }
+
+    @Override
+    public boolean buttonDown(Controller controller, int buttonCode) {
+        System.out.println("Controller ");
+        if(buttonCode == 1) {
+            keyDown(Input.Keys.W);
+        }
+        return false;
+    }
+
+    @Override
+    public boolean buttonUp(Controller controller, int buttonCode) {
+        System.out.println("Controller ");
+        if(buttonCode == 1) {
+            keyUp(Input.Keys.W);
+        }
+        return false;
+    }
+
+    @Override
+    public boolean axisMoved(Controller controller, int axisCode, float value) {
+        if(axisCode == 4) {
+            scrolled(Math.round(value * 10));
+        }
+        return false;
+    }
+
+    Integer lastPovKey = null;
+    private static final Map<PovDirection, Integer> POV_BUTTONS_TO_KEYS = Map.of(
+            PovDirection.north, Input.Keys.W,
+            PovDirection.east, Input.Keys.D,
+            PovDirection.south, Input.Keys.S,
+            PovDirection.west, Input.Keys.A
+    );
+    @Override
+    public boolean povMoved(Controller controller, int povCode, PovDirection value) {
+
+        Integer key = POV_BUTTONS_TO_KEYS.get(value);
+        if(key != null) {
+            keyDown(key);
+        } else if(value == PovDirection.center && lastPovKey != null) {
+            keyUp(lastPovKey);
+        }
+        lastPovKey = key;
+
+        return false;
+    }
+
+    @Override
+    public boolean xSliderMoved(Controller controller, int sliderCode, boolean value) {
+        return false;
+    }
+
+    @Override
+    public boolean ySliderMoved(Controller controller, int sliderCode, boolean value) {
+        return false;
+    }
+
+    @Override
+    public boolean accelerometerMoved(Controller controller, int accelerometerCode, Vector3 value) {
+        return false;
     }
 }

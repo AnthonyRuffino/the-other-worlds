@@ -3,7 +3,6 @@ package io.blocktyper.theotherworlds.server;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Listener;
 import io.blocktyper.theotherworlds.plugin.utils.FileUtils;
-import io.blocktyper.theotherworlds.plugin.PluginLoader;
 import io.blocktyper.theotherworlds.server.auth.CaptchaUtils;
 import io.blocktyper.theotherworlds.server.auth.KeyUtils;
 import io.blocktyper.theotherworlds.server.messaging.*;
@@ -44,7 +43,7 @@ public class ServerListener extends Listener {
 
         String imagePath = "plugins/" + request.name;
         byte[] imageBytes = FileUtils.getLocalFileBytes(imagePath);
-        if(imageBytes == null) {
+        if (imageBytes == null) {
             System.out.println("Missing image on server: " + imagePath);
         }
         connection.sendTCP(new ImageResponse().setName(request.name).setBytes(imageBytes));
@@ -62,28 +61,15 @@ public class ServerListener extends Listener {
 
     private void handlePerformActionRequest(Connection connection, PerformActionRequest request) {
 
-        System.out.println("-------------------");
-        System.out.println("action   - " + request.action);
-        System.out.println("cancel   - " + request.cancel);
-        System.out.println("target   - " + request.target);
-        System.out.println("-------------------");
+        Set<String> keysPressed = server.keysPressedPerConnection
+                .computeIfAbsent(connection.getID(), k -> ConcurrentHashMap.newKeySet());
 
-        if (
-                "forward".equals(request.action)
-                        || "back".equals(request.action)
-                        || "left".equals(request.action)
-                        || "right".equals(request.action)
-        ) {
-            Set<String> keysPressed = server.keysPressedPerConnection
-                    .computeIfAbsent(connection.getID(), k -> ConcurrentHashMap.newKeySet());
+        server.pluginLoader.handleActions(server.playerNameMap.get(connection.getID()), request);
 
-            server.pluginLoader.handleActions(server.playerNameMap.get(connection.getID()), request);
-
-            if (request.cancel) {
-                keysPressed.remove(request.action);
-            } else {
-                keysPressed.add(request.action);
-            }
+        if (request.cancel) {
+            keysPressed.remove(request.action);
+        } else {
+            keysPressed.add(request.action);
         }
     }
 
@@ -110,7 +96,7 @@ public class ServerListener extends Listener {
                     String challenge = UUID.randomUUID().toString();
                     challenges.put(request.username, new AbstractMap.SimpleEntry<>(challenge, Instant.now().plusSeconds(CHALLENGE_EXPIRY_SECONDS)));
                     response.username = request.username;
-                    response.challenge = challenge;
+                    response.signatureChallenge = challenge;
                 } else {
                     PublicKey publicKey;
                     try {

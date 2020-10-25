@@ -50,8 +50,8 @@ public class TheOtherWorldsGameServer implements PluginServer {
     Kryo kryo;
 
 
-    private Map<String, WorldEntity> staticEntities = new ConcurrentHashMap();
-    private Map<String, WorldEntity> dynamicEntities = new ConcurrentHashMap();
+    private Map<String, WorldEntity> staticEntities = new ConcurrentHashMap<>();
+    private Map<String, WorldEntity> dynamicEntities = new ConcurrentHashMap<>();
 
 
     public static final long TICK_DELAY_MS = 30l;
@@ -223,6 +223,7 @@ public class TheOtherWorldsGameServer implements PluginServer {
                                             } catch (Exception ex) {
                                                 System.out.println("Unexpected exception sending data to player: " + ex.getMessage() + ". " + connection.getID());
                                                 connectionsToRemove.add(connection.getID());
+                                                pluginLoader.handlePlayerConnection(playerNameMap.get(connection.getID()), true);
                                             }
                                         }
                                 )
@@ -270,6 +271,7 @@ public class TheOtherWorldsGameServer implements PluginServer {
                 .collect(Collectors.toMap(WorldEntityUpdate::getId, value -> value));
     }
 
+    @Override
     public Map<String, WorldEntity> getDynamicEntities() {
         return dynamicEntities;
     }
@@ -278,6 +280,8 @@ public class TheOtherWorldsGameServer implements PluginServer {
         playerMap.put(connection.getID(), playerName);
         playerNameMap.put(connection.getID(), playerName);
         connectionMap.put(connection.getID(), connection);
+
+        pluginLoader.handlePlayerConnection(playerName, false);
 
         connection.sendTCP(new WorldEntityUpdates(
                 new ArrayList<>(getStaticEntitiesAsUpdates().values())

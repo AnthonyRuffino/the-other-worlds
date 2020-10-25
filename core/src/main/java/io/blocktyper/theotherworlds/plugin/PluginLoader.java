@@ -27,6 +27,8 @@ public interface PluginLoader {
 
     Map<String, ControlBindings> getControlBindings();
 
+    void handlePlayerConnection(String player, boolean isDisconnect);
+
     void handleActions(String player, PerformActionRequest performActionRequest);
 
     default WorldEntity thingToWorldEntity(Thing thing, String pluginName, BodyDef.BodyType bodyType) {

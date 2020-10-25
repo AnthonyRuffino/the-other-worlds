@@ -4,7 +4,7 @@ java -jar packr-all-2.7.0.jar  \
      	--jdk ~/Downloads/OpenJDK11U-jre_x64_windows_openj9_11.0.8_10_openj9-0.21.0.zip  \
     	--useZgcIfSupportedOs  \
     	--executable the-other-worlds     \
-       	--classpath desktop/build/libs/desktop-1.0.jar  \
+       	--classpath /home/spaarkimus/git/github.com/AnthonyRuffino/the-other-worlds/desktop/build/libs/desktop-1.0.jar  \
     	--mainclass io.blocktyper.theotherworlds.desktop.DesktopLauncher  \
     	--vmargs Xmx1G  \
     	--resources desktop/client_config.json  \

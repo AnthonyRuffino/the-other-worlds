@@ -11,6 +11,6 @@ public interface PluginStaticWorldEntities extends PluginLoader {
         return getPlugins().entrySet().stream().flatMap(plugin ->
                 plugin.getValue().getStaticThings().stream()
                         .map(staticThing -> thingToWorldEntity(staticThing, plugin.getKey(), BodyDef.BodyType.StaticBody))
-        ).collect(Collectors.toMap(e -> e.getId(), e -> e, (a, b) -> a));
+        ).collect(Collectors.toMap(WorldEntity::getId, e -> e, (a, b) -> a));
     }
 }

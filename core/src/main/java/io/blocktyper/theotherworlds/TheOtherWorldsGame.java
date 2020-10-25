@@ -1,23 +1,24 @@
 package io.blocktyper.theotherworlds;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.controllers.Controllers;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.World;
+import com.badlogic.gdx.scenes.scene2d.Stage;
 import io.blocktyper.theotherworlds.config.ClientConfig;
-import io.blocktyper.theotherworlds.config.GameConfig;
+import io.blocktyper.theotherworlds.plugin.entities.WorldEntity;
 import io.blocktyper.theotherworlds.server.TheOtherWorldsGameServer;
 import io.blocktyper.theotherworlds.server.auth.AuthUtils;
 import io.blocktyper.theotherworlds.server.messaging.Drawable;
 import io.blocktyper.theotherworlds.server.messaging.ImageRequest;
-import io.blocktyper.theotherworlds.plugin.entities.WorldEntity;
 import io.blocktyper.theotherworlds.server.world.WorldEntityUpdate;
 import io.blocktyper.theotherworlds.visible.RelativeState;
 import io.blocktyper.theotherworlds.visible.SpriteUtils;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -34,11 +35,7 @@ public class TheOtherWorldsGame extends BaseGame {
     String host;
     World clientWorld;
 
-
-    BitmapFont font;
-
     final ClientConfig clientConfig;
-    GameConfig gameConfig;
     String gameMode = "play";
 
 
@@ -65,6 +62,8 @@ public class TheOtherWorldsGame extends BaseGame {
 
     float camOffset = 0f;
 
+    public Stage stage;
+
 
     public TheOtherWorldsGame(ClientConfig clientConfig) {
         this.clientConfig = clientConfig;
@@ -78,26 +77,43 @@ public class TheOtherWorldsGame extends BaseGame {
     @Override
     public void create() {
         super.create();
+
         this.clientWorld = new World(new Vector2(0, -1000), true);
 
         try {
-
-            font = new BitmapFont();
-
             host = clientConfig.host == null ? "localhost" : clientConfig.host;
             authUtils = new AuthUtils(this, this::postReconnect, host);
-            authUtils.setUpClient();
-            authUtils.promptLogin(Gdx.input, USER_DATA_DIRECTORY);
+            stage = authUtils.getLoginStage();
+
+            useStageInputProcessor();
 
             clientInputAdapter = new ClientInputAdapter(this, authUtils, Gdx.input);
-            Gdx.input.setInputProcessor(clientInputAdapter);
+            Controllers.addListener(clientInputAdapter);
 
             scheduleReconnector();
-
         } catch (Exception ex) {
             ex.printStackTrace();
             System.out.println("Unexpected message creating game: " + ex.getMessage());
         }
+    }
+
+    public void finishLogin() {
+        authUtils.finishLogin();
+        useClientInputAdapter();
+    }
+
+    public void useClientInputAdapter() {
+        stage.unfocusAll();
+        Gdx.input.setInputProcessor(clientInputAdapter);
+    }
+
+    public void useStageInputProcessor() {
+        stage.setKeyboardFocus(authUtils.textField1);
+        if(authUtils.firstLoginComplete) {
+            authUtils.textField1.setText(authUtils.lastCommand);
+        }
+        authUtils.textField1.selectAll();
+        Gdx.input.setInputProcessor(stage);
     }
 
     private void scheduleReconnector() {
@@ -159,6 +175,9 @@ public class TheOtherWorldsGame extends BaseGame {
     public void render() {
         super.render();
 
+        if (stage != null) {
+            stage.draw();
+        }
 
         //add all new hudShapes
         synchronized (hudShapeUpdates) {
@@ -245,8 +264,6 @@ public class TheOtherWorldsGame extends BaseGame {
         hudSpriteBatch.begin();
         //draw all hud items
         //hudBatch.draw(sprite, sprite.getX(), sprite.getY(), hudVisual.width, hudVisual.height);
-
-        font.draw(hudSpriteBatch, "Text did not come from server", -WIDTH() / 2, HEIGHT() / 4);
         hudSpriteBatch.end();
 
     }
@@ -264,7 +281,7 @@ public class TheOtherWorldsGame extends BaseGame {
         }
 
         if (!missingSprites.contains(spriteName)) {
-            if(!requestedSprites.contains(spriteName)) {
+            if (!requestedSprites.contains(spriteName)) {
                 requestedSprites.add(spriteName);
                 System.out.println("Requesting sprite: " + spriteName);
                 authUtils.getClient().sendTCP(new ImageRequest().setName(spriteName));

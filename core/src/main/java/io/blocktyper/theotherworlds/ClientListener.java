@@ -1,6 +1,5 @@
 package io.blocktyper.theotherworlds;
 
-import com.badlogic.gdx.Gdx;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Listener;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -44,26 +43,24 @@ public class ClientListener extends Listener {
             }
             game.clearHudShapes();
             if (response.captcha != null) {
-                game.addHudShapeUpdates(response.captcha);
+
             }
 
-            if (response.challenge != null) {
-                game.authUtils.login(null, response.challenge, null);
-            } else if (!response.success) {
+            if (response.signatureChallenge != null) {
+                game.authUtils.login(null, response.signatureChallenge, null);
+            } else if (!response.success && response.captcha != null) {
+                game.addHudShapeUpdates(response.captcha);
                 System.out.println(response.message);
-                game.authUtils.promptLogin(
-                        Gdx.input,
-                        response.message,
-                        response.username,
-                        response.newUser,
-                        TheOtherWorldsGame.USER_DATA_DIRECTORY
-                );
-            } else {
+                game.authUtils.captcha();
+            } else if(response.success){
                 //game.playerInstantiation = response.playerUpdate;
+                game.finishLogin();
+            } else {
+                throw new RuntimeException("Unexpected state in login flow.");
             }
         } else if (object instanceof ImageResponse) {
             ImageResponse imageResponse = (ImageResponse) object;
-            if(imageResponse.bytes == null) {
+            if (imageResponse.bytes == null) {
                 game.missingSprites.add(imageResponse.name);
             } else {
                 String fileName = game.getUsersServersDirectory() + imageResponse.name;

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.blocktyper.theotherworlds.plugin.actions.ActionListener;
 import io.blocktyper.theotherworlds.plugin.actions.PlayerAction;
+import io.blocktyper.theotherworlds.plugin.actions.PlayerConnectionListener;
 import io.blocktyper.theotherworlds.plugin.utils.FileUtils;
 import io.blocktyper.theotherworlds.server.messaging.PerformActionRequest;
 
@@ -20,11 +21,18 @@ public class PluginLoaderImpl implements PluginLoader, PluginContactListener, Pl
     Map<String, EntityCreator> entityCreators;
     String pluginsPath;
     Map<String, List<ActionListener>> actionListeners;
-
+    Map<String, PlayerConnectionListener> playerConnectionListeners;
 
     @Override
     public Map<String, EntityCreator> getEntityCreators() {
         return entityCreators;
+    }
+
+    @Override
+    public void handlePlayerConnection(String player, boolean isDisconnect) {
+        playerConnectionListeners.values().forEach(playerConnectionListener -> {
+            playerConnectionListener.handlePlayerConnection(player, isDisconnect);
+        });
     }
 
     @Override
@@ -69,6 +77,12 @@ public class PluginLoaderImpl implements PluginLoader, PluginContactListener, Pl
                         Map.Entry::getKey,
                         Collectors.mapping(Map.Entry::getValue, Collectors.toList()))
                 );
+
+        playerConnectionListeners = getPlugins().entrySet().stream()
+                .flatMap(pluginNameEntry ->
+                        pluginNameEntry.getValue().getPlayerConnectionListener().stream()
+                                .map(cl -> new AbstractMap.SimpleEntry<>(pluginNameEntry.getKey(), cl))
+        ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a,b) -> a));
 
     }
 

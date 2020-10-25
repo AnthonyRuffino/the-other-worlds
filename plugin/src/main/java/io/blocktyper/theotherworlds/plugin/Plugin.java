@@ -3,6 +3,7 @@ package io.blocktyper.theotherworlds.plugin;
 import com.badlogic.gdx.physics.box2d.ContactListener;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.blocktyper.theotherworlds.plugin.actions.ActionListener;
+import io.blocktyper.theotherworlds.plugin.actions.PlayerConnectionListener;
 import io.blocktyper.theotherworlds.plugin.controls.ControlBindings;
 import io.blocktyper.theotherworlds.plugin.entities.Thing;
 import io.blocktyper.theotherworlds.plugin.utils.FileUtils;
@@ -17,6 +18,10 @@ public interface Plugin {
     void init(String pluginName, PluginServer pluginServer, JsonNode config);
 
     JsonNode getConfig();
+
+    default Optional<PlayerConnectionListener> getPlayerConnectionListener() {
+        return Optional.empty();
+    }
 
     default List<ContactListener> getContactListeners() {
         return List.of();
