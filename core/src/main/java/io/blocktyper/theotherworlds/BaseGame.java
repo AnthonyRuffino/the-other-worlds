@@ -27,7 +27,7 @@ public class BaseGame extends ApplicationAdapter {
         widthUponCreate = WIDTH();
 
         camera = new OrthographicCamera(widthUponCreate, heightUponCreate);
-        camera.zoom = 15;
+        camera.zoom = 30;
 
         worldSpriteBatch = new SpriteBatch();
         hudSpriteBatch = new SpriteBatch();

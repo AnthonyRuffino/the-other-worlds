@@ -1,10 +1,7 @@
 package example;
 
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.physics.box2d.Contact;
-import com.badlogic.gdx.physics.box2d.ContactImpulse;
-import com.badlogic.gdx.physics.box2d.ContactListener;
-import com.badlogic.gdx.physics.box2d.Manifold;
+import com.badlogic.gdx.physics.box2d.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.blocktyper.theotherworlds.plugin.BasePlugin;
 import io.blocktyper.theotherworlds.plugin.EntityCreator;
@@ -14,6 +11,7 @@ import io.blocktyper.theotherworlds.plugin.actions.PlayerAction;
 import io.blocktyper.theotherworlds.plugin.actions.PlayerConnectionListener;
 import io.blocktyper.theotherworlds.plugin.entities.Damageable;
 import io.blocktyper.theotherworlds.plugin.entities.Thing;
+import io.blocktyper.theotherworlds.plugin.entities.WorldEntity;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,9 +21,9 @@ public class PluginExample extends BasePlugin implements ActionListener, PlayerC
     private int damageAmount;
     long lifeSpan = 1000;
 
-    private Set<String> INTERESTS = Set.of("forward", "left", "back", "right");
+    private final Set<String> INTERESTS = Set.of("forward", "left", "back", "right");
 
-    private Map<String, Thing> thingsToAdd = new ConcurrentHashMap<>();
+    private final Map<String, Thing> thingsToAdd = new ConcurrentHashMap<>();
 
     @Override
     public void init(String pluginName, PluginServer pluginServer, JsonNode config) {
@@ -72,7 +70,23 @@ public class PluginExample extends BasePlugin implements ActionListener, PlayerC
     public Optional<EntityCreator> getEntityCreator() {
         return Optional.of(() -> {
             long tick = pluginServer.getTick();
-            if (tick % 500 == 0) {
+
+            allPlayerActions.forEach((playerName, actions) -> {
+                Optional.ofNullable(pluginServer.getDynamicEntities().get(playerName))
+                        .ifPresent(player -> {
+                            actions.forEach(action -> {
+                                Optional.ofNullable(DIRECTION_MAP.get(action)).ifPresent(direction -> {
+                                    player.getBody().setLinearVelocity(applyDirectionVector(player, direction));
+                                });
+                            });
+                            if(player.getBody().getLinearVelocity() != null) {
+                                player.getBody().setLinearVelocity(normalizeIfNeeded(player.getBody().getLinearVelocity()));
+                            }
+                        });
+            });
+
+
+            if (tick % 100 == 0) {
 
                 final String entityId;
                 final Integer health;
@@ -80,17 +94,17 @@ public class PluginExample extends BasePlugin implements ActionListener, PlayerC
                 final String img;
                 if (tick == 10000) {
                     img = "morgan-blocksky.png";
-                    health = null;
+                    health = 1000;
                     deathTick = null;
                     entityId = "player_a";
                 } else {
                     img = "sun.jpg";
-                    health = 150;
+                    health = 1000;
                     deathTick = tick + lifeSpan;
                     entityId = "e_" + tick;
                 }
 
-                return List.of(getThing(tick, entityId, health, tick, deathTick, img, null));
+                return List.of(getThing(tick, entityId, health, tick, deathTick, img, null, null));
             }
             if (!thingsToAdd.isEmpty()) {
                 synchronized (thingsToAdd) {
@@ -104,7 +118,7 @@ public class PluginExample extends BasePlugin implements ActionListener, PlayerC
         });
     }
 
-    public Thing getThing(long size, String entityId, Integer health, float restitution, Long deathTick, String img, String playerName) {
+    public Thing getThing(long size, String entityId, Integer health, float restitution, Long deathTick, String img, String playerName, Float linearDampening) {
         return new Thing() {
             @Override
             public String getId() {
@@ -148,7 +162,7 @@ public class PluginExample extends BasePlugin implements ActionListener, PlayerC
 
             @Override
             public float getFriction() {
-                return size;
+                return 1;
             }
 
             @Override
@@ -169,6 +183,11 @@ public class PluginExample extends BasePlugin implements ActionListener, PlayerC
             @Override
             public Integer getHealth() {
                 return health;
+            }
+
+            @Override
+            public Float getLinearDampening() {
+                return linearDampening;
             }
         };
     }
@@ -218,7 +237,7 @@ public class PluginExample extends BasePlugin implements ActionListener, PlayerC
 
             @Override
             public float getFriction() {
-                return 0;
+                return 1;
             }
 
             @Override
@@ -229,6 +248,11 @@ public class PluginExample extends BasePlugin implements ActionListener, PlayerC
             @Override
             public float getAngle() {
                 return 0;
+            }
+
+            @Override
+            public Float getLinearDampening() {
+                return 1f;
             }
         });
     }
@@ -248,30 +272,71 @@ public class PluginExample extends BasePlugin implements ActionListener, PlayerC
         return INTERESTS;
     }
 
+    Map<String, Set<String>> allPlayerActions = new HashMap<>();
+
     @Override
     public void process(List<PlayerAction> actions) {
         actions.forEach(action ->
                 Optional.ofNullable(pluginServer.getDynamicEntities().get("player_" + action.player))
                         .ifPresent(p -> {
-                            if ("forward".equals(action.actionName)) {
-                                p.getBody().setLinearVelocity(new Vector2(0, 10000));
-                            } else if ("left".equals(action.actionName)) {
-                                p.getBody().setLinearVelocity(new Vector2(-1000, 0));
-                            } else if ("back".equals(action.actionName)) {
-                                p.getBody().setLinearVelocity(new Vector2(0, -10000));
-                            } else if ("right".equals(action.actionName)) {
-                                p.getBody().setLinearVelocity(new Vector2(1000, 0));
-                            }
+                            Set<String> playerActions = allPlayerActions.computeIfAbsent(p.getId(), k -> new HashSet<>());
+                            registerMotion(p, action, playerActions);
                         })
         );
     }
+
+    private static final Map<String, Vector2> DIRECTION_MAP = Map.of(
+            "right", new Vector2(1000, 0),
+            "left", new Vector2(-1000, 0),
+            "forward", new Vector2(0, 1000),
+            "back", new Vector2(0, -1000)
+    );
+    private void registerMotion(
+            WorldEntity player,
+            PlayerAction action,
+            Set<String> playerActions)
+    {
+        if(action.cancel) {
+            playerActions.remove(action.actionName);
+        } else {
+            playerActions.add(action.actionName);
+            Optional.ofNullable(DIRECTION_MAP.get(action.actionName)).ifPresent(direction -> {
+                Vector2 newVelocity = normalizeIfNeeded(applyDirectionVector(player, direction));
+                if(newVelocity != null) {
+                    player.getBody().setLinearVelocity(newVelocity);
+                }
+            });
+        }
+    }
+
+    private Vector2 applyDirectionVector(WorldEntity player, Vector2 direction) {
+        if(player.getBody().getLinearVelocity() == null) {
+            return direction;
+        }
+        return player.getBody().getLinearVelocity().add(direction);
+    }
+
+    private Vector2 normalizeIfNeeded(Vector2 direction) {
+        if(direction == null) {
+            return null;
+        }
+        float length = direction.len();
+        if(length > 100000000) {
+            direction.x /= length;
+            direction.y /= length;
+        }
+        return direction;
+    }
+
+
+
 
     @Override
     public void handlePlayerConnection(String player, boolean isDisconnect) {
         if (isDisconnect) {
 
         } else {
-            thingsToAdd.put(player, getThing(2000, player, null, 0f,null, player.equals("b") ? "morgan-blocksky.png" : "mo.png", player));
+            thingsToAdd.put(player, getThing(2000, player, null, 0f,null, player.equals("b") ? "morgan-blocksky.png" : "mo.png", player, 0.5f));
         }
     }
 }

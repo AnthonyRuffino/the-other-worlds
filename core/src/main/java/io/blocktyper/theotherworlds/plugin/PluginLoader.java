@@ -32,7 +32,7 @@ public interface PluginLoader {
     void handleActions(String player, PerformActionRequest performActionRequest);
 
     default WorldEntity thingToWorldEntity(Thing thing, String pluginName, BodyDef.BodyType bodyType) {
-        return new WorldEntity(
+        WorldEntity worldEntity = new WorldEntity(
                 thing.playerName() != null ? ("player_" + thing.playerName()) : pluginName + "_" + thing.getId(),
                 bodyType.getValue(),
                 getWorld(),
@@ -46,5 +46,11 @@ public interface PluginLoader {
                 thing.getAngle(),
                 pluginName + "/" + CLIENT_IMAGE_DIRECTORY + thing.getSpriteName()
         ).setDeathTick(thing.getDeathTick()).setHealth(thing.getHealth());
+
+        if(thing.getLinearDampening() != null) {
+            worldEntity.getBody().setLinearDamping(thing.getLinearDampening());
+        }
+
+        return worldEntity;
     }
 }

@@ -1,6 +1,5 @@
 package io.blocktyper.theotherworlds.plugin.entities;
 
-import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
 
 import java.util.Map;
@@ -13,10 +12,6 @@ public class WorldEntity implements Damageable {
     private String spriteName;
     private float width;
     private float height;
-    private Vector2 linearVelocity;
-    private float angularVelocity;
-    private float linearDampening;
-    private float angularDampening;
     private float angle;
 
     private Long deathTick;
@@ -123,53 +118,12 @@ public class WorldEntity implements Damageable {
         return angle;
     }
 
-    public WorldEntity setAngle(float angle) {
-        this.angle = angle;
-        return this;
-    }
-
     public String getSpriteName() {
         return spriteName;
     }
 
     public WorldEntity setSpriteName(String spriteName) {
         this.spriteName = spriteName;
-        return this;
-    }
-
-    public Vector2 getLinearVelocity() {
-        return linearVelocity;
-    }
-
-    public WorldEntity setLinearVelocity(Vector2 linearVelocity) {
-        this.linearVelocity = linearVelocity;
-        return this;
-    }
-
-    public float getAngularVelocity() {
-        return angularVelocity;
-    }
-
-    public WorldEntity setAngularVelocity(float angularVelocity) {
-        this.angularVelocity = angularVelocity;
-        return this;
-    }
-
-    public float getLinearDampening() {
-        return linearDampening;
-    }
-
-    public WorldEntity setLinearDampening(float linearDampening) {
-        this.linearDampening = linearDampening;
-        return this;
-    }
-
-    public float getAngularDampening() {
-        return angularDampening;
-    }
-
-    public WorldEntity setAngularDampening(float angularDampening) {
-        this.angularDampening = angularDampening;
         return this;
     }
 
@@ -187,7 +141,7 @@ public class WorldEntity implements Damageable {
     }
 
     public Integer changeHealth(int amount) {
-        if(health != null) {
+        if (health != null) {
             health += amount;
         }
         return health;

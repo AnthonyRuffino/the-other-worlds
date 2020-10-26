@@ -31,4 +31,6 @@ public interface Thing {
         return null;
     }
 
+    Float getLinearDampening();
+
 }

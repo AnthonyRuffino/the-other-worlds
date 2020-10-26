@@ -118,9 +118,9 @@ public class ClientInputAdapter extends InputAdapter implements ControllerListen
     @Override
     public boolean scrolled(int amount) {
         int mod = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) ? 2 : 1;
-        game.camera.zoom += (.2f * amount * mod);
-        if (game.camera.zoom < .2f) {
-            game.camera.zoom = .2f;
+        game.camera.zoom += (.4f * amount * mod);
+        if (game.camera.zoom < .4f) {
+            game.camera.zoom = .4f;
         }
         return super.scrolled(amount);
     }

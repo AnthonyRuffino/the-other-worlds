@@ -46,7 +46,6 @@ public class TheOtherWorldsGame extends BaseGame {
     final Set<String> requestedSprites = new HashSet<>();
     private final Map<String, Sprite> spriteMap = new ConcurrentHashMap<>();
 
-    private WorldEntity player = null;
     private final List<WorldEntityUpdate> worldEntityUpdates = new ArrayList<>();
     private final List<String> worldEntityRemovals = new ArrayList<>();
     private final Map<String, WorldEntity> worldEntities = new ConcurrentHashMap<>();
@@ -219,7 +218,8 @@ public class TheOtherWorldsGame extends BaseGame {
 
 
         //rotate sprite (for top-down 2d games)
-        if(player != null || (username != null && (player = worldEntities.get("player_" + username)) != null)) {
+        WorldEntity player = null;
+        if(username != null && (player = worldEntities.get("player_" + username)) != null) {
             camera.position.x = player.getBody().getPosition().x;// - (player.getWidth() / 2);
             camera.position.y = player.getBody().getPosition().y;// - (player.getHeight() / 2);
         }
