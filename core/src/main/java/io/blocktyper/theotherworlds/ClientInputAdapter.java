@@ -214,17 +214,16 @@ public class ClientInputAdapter extends InputAdapter implements ControllerListen
 
     @Override
     public void connected(Controller controller) {
-        System.out.println("Controller connected");
+        System.out.println("Controller connected: " + controller.getName());
     }
 
     @Override
     public void disconnected(Controller controller) {
-        System.out.println("Controller ");
+        System.out.println("Controller disconnected: " + controller.getName());
     }
 
     @Override
     public boolean buttonDown(Controller controller, int buttonCode) {
-        System.out.println("Controller ");
         if(buttonCode == 1) {
             keyDown(Input.Keys.W);
         }
@@ -233,7 +232,6 @@ public class ClientInputAdapter extends InputAdapter implements ControllerListen
 
     @Override
     public boolean buttonUp(Controller controller, int buttonCode) {
-        System.out.println("Controller ");
         if(buttonCode == 1) {
             keyUp(Input.Keys.W);
         }
@@ -257,7 +255,6 @@ public class ClientInputAdapter extends InputAdapter implements ControllerListen
     );
     @Override
     public boolean povMoved(Controller controller, int povCode, PovDirection value) {
-
         Integer key = POV_BUTTONS_TO_KEYS.get(value);
         if(key != null) {
             keyDown(key);
