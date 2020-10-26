@@ -90,7 +90,7 @@ public class PluginExample extends BasePlugin implements ActionListener, PlayerC
                     entityId = "e_" + tick;
                 }
 
-                return List.of(getThing(tick, entityId, health, tick, deathTick, img));
+                return List.of(getThing(tick, entityId, health, tick, deathTick, img, null));
             }
             if (!thingsToAdd.isEmpty()) {
                 synchronized (thingsToAdd) {
@@ -104,11 +104,16 @@ public class PluginExample extends BasePlugin implements ActionListener, PlayerC
         });
     }
 
-    public Thing getThing(long size, String entityId, Integer health, float restitution, Long deathTick, String img) {
+    public Thing getThing(long size, String entityId, Integer health, float restitution, Long deathTick, String img, String playerName) {
         return new Thing() {
             @Override
             public String getId() {
                 return entityId;
+            }
+
+            @Override
+            public String playerName() {
+                return playerName;
             }
 
             @Override
@@ -177,6 +182,11 @@ public class PluginExample extends BasePlugin implements ActionListener, PlayerC
             }
 
             @Override
+            public String playerName() {
+                return null;
+            }
+
+            @Override
             public String getSpriteName() {
                 return "sun.jpg";
             }
@@ -241,7 +251,7 @@ public class PluginExample extends BasePlugin implements ActionListener, PlayerC
     @Override
     public void process(List<PlayerAction> actions) {
         actions.forEach(action ->
-                Optional.ofNullable(pluginServer.getDynamicEntities().get("example_" + action.player))
+                Optional.ofNullable(pluginServer.getDynamicEntities().get("player_" + action.player))
                         .ifPresent(p -> {
                             if ("forward".equals(action.actionName)) {
                                 p.getBody().setLinearVelocity(new Vector2(0, 10000));
@@ -261,7 +271,7 @@ public class PluginExample extends BasePlugin implements ActionListener, PlayerC
         if (isDisconnect) {
 
         } else {
-            thingsToAdd.put(player, getThing(2000, player, null, 0f,null, player.equals("b") ? "morgan-blocksky.png" : "mo.png"));
+            thingsToAdd.put(player, getThing(2000, player, null, 0f,null, player.equals("b") ? "morgan-blocksky.png" : "mo.png", player));
         }
     }
 }

@@ -3,6 +3,8 @@ package io.blocktyper.theotherworlds.plugin.entities;
 public interface Thing {
     String getId();
 
+    String playerName();
+
     String getSpriteName();
 
     float getX();

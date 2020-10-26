@@ -33,7 +33,7 @@ public interface PluginLoader {
 
     default WorldEntity thingToWorldEntity(Thing thing, String pluginName, BodyDef.BodyType bodyType) {
         return new WorldEntity(
-                pluginName + "_" + thing.getId(),
+                thing.playerName() != null ? ("player_" + thing.playerName()) : pluginName + "_" + thing.getId(),
                 bodyType.getValue(),
                 getWorld(),
                 thing.getX(),
