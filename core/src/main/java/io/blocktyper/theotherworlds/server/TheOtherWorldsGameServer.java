@@ -50,15 +50,15 @@ public class TheOtherWorldsGameServer implements PluginServer {
     Kryo kryo;
 
 
-    private Map<String, WorldEntity> staticEntities = new ConcurrentHashMap<>();
-    private Map<String, WorldEntity> dynamicEntities = new ConcurrentHashMap<>();
+    private final Map<String, WorldEntity> staticEntities = new ConcurrentHashMap<>();
+    private final Map<String, WorldEntity> dynamicEntities = new ConcurrentHashMap<>();
 
 
-    public static final long TICK_DELAY_MS = 30l;
+    public static final long TICK_DELAY_MS = 30L;
     public static float GRAVITY = -1000f;
-    public static float TARGET_DELTA = 1f / (1000 / TICK_DELAY_MS);
+    public static final float TARGET_DELTA = 1f / (1000f / TICK_DELAY_MS);
     private float accumulator = 0;
-    private float TARGET_ACCUMULATOR = TARGET_DELTA / ((30f / 50f) * 50L);
+    private static final float TARGET_ACCUMULATOR = TARGET_DELTA / ((30f / 50f) * 50L);
     long last_time = System.nanoTime();
 
 
