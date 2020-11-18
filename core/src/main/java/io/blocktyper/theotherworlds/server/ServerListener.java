@@ -20,8 +20,8 @@ public class ServerListener extends Listener {
     private static final int CHALLENGE_EXPIRY_SECONDS = 10;
     private final TheOtherWorldsGameServer server;
 
-    private Map<String, Map.Entry<String, Instant>> challenges = Collections.synchronizedMap(new HashMap<>());
-    private Map<String, Map.Entry<String, Instant>> newUserCaptcha = Collections.synchronizedMap(new HashMap<>());
+    private final Map<String, Map.Entry<String, Instant>> challenges = Collections.synchronizedMap(new HashMap<>());
+    private final Map<String, Map.Entry<String, Instant>> newUserCaptcha = Collections.synchronizedMap(new HashMap<>());
 
     public ServerListener(TheOtherWorldsGameServer server) {
         this.server = server;
