@@ -27,15 +27,15 @@ public class ServerListener extends Listener {
         this.server = server;
     }
 
-    public void received(Connection connection, Object object) {
-        if (object instanceof LoginRequest) {
-            handleLoginRequest(connection, (LoginRequest) object);
-        } else if (object instanceof PerformActionRequest) {
-            handlePerformActionRequest(connection, (PerformActionRequest) object);
-        } else if (object instanceof MissingWorldEntities) {
-            handleMissingWorldEntities(connection, (MissingWorldEntities) object);
-        } else if (object instanceof ImageRequest) {
-            handleImageRequest(connection, (ImageRequest) object);
+    public void received(Connection connection, Object requestObject) {
+        if (requestObject instanceof LoginRequest) {
+            handleLoginRequest(connection, (LoginRequest) requestObject);
+        } else if (requestObject instanceof PerformActionRequest) {
+            handlePerformActionRequest(connection, (PerformActionRequest) requestObject);
+        } else if (requestObject instanceof MissingWorldEntities) {
+            handleMissingWorldEntities(connection, (MissingWorldEntities) requestObject);
+        } else if (requestObject instanceof ImageRequest) {
+            handleImageRequest(connection, (ImageRequest) requestObject);
         }
     }
 
@@ -49,10 +49,10 @@ public class ServerListener extends Listener {
         connection.sendTCP(new ImageResponse().setName(request.name).setBytes(imageBytes));
     }
 
-    private void handleMissingWorldEntities(Connection connection, MissingWorldEntities object) {
+    private void handleMissingWorldEntities(Connection connection, MissingWorldEntities request) {
         connection.sendTCP(
                 new WorldEntityUpdates(
-                        server.getDynamicEntitiesAsUpdates(object.getMissingEntities())
+                        server.getDynamicEntitiesAsUpdates(request.getMissingEntities())
                                 .values().parallelStream()
                                 .collect(Collectors.toList())
                 ).setMissing(true)
