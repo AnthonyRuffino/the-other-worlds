@@ -32,7 +32,7 @@ public class TheOtherWorldsGameServer implements PluginServer {
     public static String CWD = System.getProperty("user.dir");
     public static String USER_DATA_DIRECTORY = CWD + "/.data/server/users/";
 
-    private long tick = 0l;
+    private long tick = 0;
     private Timer timer;
 
     PluginLoader pluginLoader;
@@ -42,11 +42,12 @@ public class TheOtherWorldsGameServer implements PluginServer {
 
     Map<Integer, Set<String>> keysPressedPerConnection = new ConcurrentHashMap<>();
     Map<Integer, String> playerNameMap = new HashMap<>();
-    Map<Integer, Connection> connectionMap = new HashMap<>();
+    final Map<Integer, Connection> connectionMap = new HashMap<>();
     Map<Integer, Object> playerMap = new HashMap<>();
 
     private static final int BATCH_SIZE = 30;
     Server server = new Server(1000000, 1000000);
+    ServerListener listener;
     Kryo kryo;
 
 
@@ -86,7 +87,8 @@ public class TheOtherWorldsGameServer implements PluginServer {
             server.start();
             server.bind(54555, 54777);
 
-            server.addListener(new ServerListener(this));
+            listener = new ServerListener(this);
+            server.addListener(listener);
 
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -101,6 +103,16 @@ public class TheOtherWorldsGameServer implements PluginServer {
         timer = new Timer("TickTimer");
 
         timer.schedule(task, TICK_DELAY_MS, TICK_DELAY_MS);
+    }
+
+    public void stop() {
+        if(timer != null) {
+            timer.cancel();
+        }
+        if(server != null) {
+            server.removeListener(listener);
+            server.stop();
+        }
     }
 
     @Override
@@ -165,12 +177,12 @@ public class TheOtherWorldsGameServer implements PluginServer {
 
     private void doAllRemovals() {
         Stream<String> expiredEntityIds = dynamicEntities.keySet().stream()
-                .map(entityId -> dynamicEntities.get(entityId))
+                .map(dynamicEntities::get)
                 .filter(entity -> entity.getDeathTick() != null && entity.getDeathTick() < tick)
                 .map(this::removeEntity);
 
         Stream<String> deadEntityIds = dynamicEntities.keySet().stream()
-                .map(entityId -> dynamicEntities.get(entityId))
+                .map(dynamicEntities::get)
                 .filter(WorldEntity::isDead)
                 .map(this::removeEntity);
 

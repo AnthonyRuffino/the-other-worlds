@@ -39,7 +39,7 @@ public class TheOtherWorldsGame extends BaseGame {
     String gameMode = "play";
 
 
-    private Timer reconnectionTimer;
+    Timer reconnectionTimer;
 
 
     final Set<String> missingSprites = new HashSet<>();
@@ -86,6 +86,8 @@ public class TheOtherWorldsGame extends BaseGame {
             stage = authUtils.getLoginStage();
 
             useStageInputProcessor();
+
+            Gdx.app.addLifecycleListener(new ShutdownHook(this));
 
             clientInputAdapter = new ClientInputAdapter(this, authUtils, Gdx.input);
             Controllers.addListener(clientInputAdapter);
@@ -210,15 +212,13 @@ public class TheOtherWorldsGame extends BaseGame {
 
         //do world removals
         synchronized (worldEntityRemovals) {
-            worldEntityRemovals.forEach(worldEntityId -> {
-                worldEntities.remove(worldEntityId);
-            });
+            worldEntityRemovals.forEach(worldEntities::remove);
             worldEntityRemovals.clear();
         }
 
 
         //rotate sprite (for top-down 2d games)
-        WorldEntity player = null;
+        WorldEntity player;
         if(username != null && (player = worldEntities.get("player_" + username)) != null) {
             camera.position.x = player.getBody().getPosition().x;// - (player.getWidth() / 2);
             camera.position.y = player.getBody().getPosition().y;// - (player.getHeight() / 2);
@@ -249,14 +249,14 @@ public class TheOtherWorldsGame extends BaseGame {
 
 
         //draw all world entities
-        worldEntities.forEach((key, entity) -> {
+        worldEntities.forEach((key, entity) ->
             worldSpriteBatch.draw(createSpriteIfNeeded(entity.getSpriteName()),
                     entity.getBody().getPosition().x - (entity.getWidth() / 2),
                     entity.getBody().getPosition().y - (entity.getHeight() / 2),
                     entity.getWidth(),
                     entity.getHeight()
-            );
-        });
+            )
+        );
 
 
         //spriteBatch.draw(sprite, worldEntity.x, worldEntity.y, worldEntity.width, worldEntity.height);
