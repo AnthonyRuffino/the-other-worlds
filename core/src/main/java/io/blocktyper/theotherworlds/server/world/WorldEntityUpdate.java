@@ -141,10 +141,16 @@ public class WorldEntityUpdate {
                                 || update.y.isPresent()
                                 || update.width.isPresent()
                                 || update.height.isPresent()
+                                || update.angularVelocity.isPresent()
+                                || update.linearDampening.isPresent()
+                                || update.angularDampening.isPresent()
                                 || update.density.isPresent()
                                 || update.friction.isPresent()
                                 || update.restitution.isPresent()
                                 || update.angle.isPresent()
+                                || update.spriteName.isPresent()
+                                || update.linearVelocity.isPresent()
+                                || update.bodyType.isPresent()
                 ) ? update : null
         );
     }

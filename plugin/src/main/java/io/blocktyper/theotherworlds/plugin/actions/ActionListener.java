@@ -6,5 +6,5 @@ import java.util.Set;
 public interface ActionListener {
     Set<String> getInterests();
 
-    void process(List<PlayerAction> actions);
+    void handlePlayerActions(List<PlayerAction> playerActions);
 }

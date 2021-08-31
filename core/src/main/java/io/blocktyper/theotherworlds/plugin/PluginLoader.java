@@ -29,7 +29,7 @@ public interface PluginLoader {
 
     void handlePlayerConnection(String player, boolean isDisconnect);
 
-    void handleActions(String player, PerformActionRequest performActionRequest);
+    void handlePlayerActions(String player, PerformActionRequest performActionRequest);
 
     default WorldEntity thingToWorldEntity(Thing thing, String pluginName, BodyDef.BodyType bodyType) {
         WorldEntity worldEntity = new WorldEntity(

@@ -36,11 +36,11 @@ public class PluginLoaderImpl implements PluginLoader, PluginContactListener, Pl
     }
 
     @Override
-    public void handleActions(String player, PerformActionRequest performActionRequest) {
+    public void handlePlayerActions(String player, PerformActionRequest performActionRequest) {
         Optional.ofNullable(actionListeners.get(performActionRequest.action))
                 .ifPresent(listeners ->
                         listeners.forEach(listener ->
-                                listener.process(List.of(new PlayerAction(player, performActionRequest.action, performActionRequest.target, performActionRequest.cancel)))
+                                listener.handlePlayerActions(List.of(new PlayerAction(player, performActionRequest.action, performActionRequest.target, performActionRequest.cancel)))
                         )
                 );
     }

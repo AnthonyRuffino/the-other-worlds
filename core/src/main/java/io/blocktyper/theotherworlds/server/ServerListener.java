@@ -64,7 +64,7 @@ public class ServerListener extends Listener {
         Set<String> keysPressed = server.keysPressedPerConnection
                 .computeIfAbsent(connection.getID(), k -> ConcurrentHashMap.newKeySet());
 
-        server.pluginLoader.handleActions(server.playerNameMap.get(connection.getID()), request);
+        server.pluginLoader.handlePlayerActions(server.playerNameMap.get(connection.getID()), request);
 
         if (request.cancel) {
             keysPressed.remove(request.action);
@@ -116,7 +116,7 @@ public class ServerListener extends Listener {
 
                 if (existingCaptcha == null
                         || captcha == null
-                        || !captcha.toLowerCase().equals(existingCaptcha.getKey().toLowerCase())
+                        || !captcha.equalsIgnoreCase(existingCaptcha.getKey())
                         || existingCaptcha.getValue().isBefore(Instant.now())
                 ) {
                     System.out.println("Captcha failed: " + request.username);

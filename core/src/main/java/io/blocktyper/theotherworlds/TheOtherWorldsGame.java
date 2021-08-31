@@ -135,7 +135,7 @@ public class TheOtherWorldsGame extends BaseGame {
             return worldEntityUpdates.stream().flatMap(update -> {
                 if (worldEntities.containsKey(update.getId()) || expectedMissing) {
                     this.worldEntityUpdates.add(update);
-                    return null;
+                    return Stream.empty();
                 }
                 return Stream.of(update.getId());
             }).collect(Collectors.toSet());
