@@ -107,6 +107,8 @@ project(":core") {
         from {
             configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
         }
+
+        dependsOn(":plugin:jar")
     }
 
     test {

@@ -44,11 +44,19 @@ public interface PluginLoader {
                 thing.getFriction(),
                 thing.getRestitution(),
                 thing.getAngle(),
-                pluginName + "/" + CLIENT_IMAGE_DIRECTORY + thing.getSpriteName()
+                pluginName + "/" + CLIENT_IMAGE_DIRECTORY + thing.getSpriteName(),
+                thing.getXOrientation()
+
         ).setDeathTick(thing.getDeathTick()).setHealth(thing.getHealth());
 
-        if(thing.getLinearDampening() != null) {
+        worldEntity.getBody().setFixedRotation(thing.isFixedRotation());
+
+        if (thing.getLinearDampening() != null) {
             worldEntity.getBody().setLinearDamping(thing.getLinearDampening());
+        }
+
+        if (thing.getAngularDampening() != null) {
+            worldEntity.getBody().setAngularDamping(thing.getAngularDampening());
         }
 
         return worldEntity;

@@ -4,11 +4,9 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.controllers.Controllers;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import io.blocktyper.theotherworlds.config.ClientConfig;
-import io.blocktyper.theotherworlds.plugin.entities.WorldEntity;
+
 import io.blocktyper.theotherworlds.server.TheOtherWorldsGameServer;
 import io.blocktyper.theotherworlds.server.auth.AuthUtils;
 import io.blocktyper.theotherworlds.server.messaging.Drawable;
@@ -18,7 +16,6 @@ import io.blocktyper.theotherworlds.visible.RelativeState;
 import io.blocktyper.theotherworlds.visible.SpriteUtils;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -33,7 +30,6 @@ public class TheOtherWorldsGame extends BaseGame {
     public static String USER_DATA_DIRECTORY = DATA_DIRECTORY + "users/";
 
     String host;
-    World clientWorld;
 
     final ClientConfig clientConfig;
     String gameMode = "play";
@@ -48,7 +44,7 @@ public class TheOtherWorldsGame extends BaseGame {
 
     private final List<WorldEntityUpdate> worldEntityUpdates = new ArrayList<>();
     private final List<String> worldEntityRemovals = new ArrayList<>();
-    private final Map<String, WorldEntity> worldEntities = new ConcurrentHashMap<>();
+    private final Map<String, WorldEntityUpdate> worldEntities = new ConcurrentHashMap<>();
 
     private final List<Drawable> hudShapeUpdates = new ArrayList<>();
     private final Map<String, Drawable> hudShapes = new ConcurrentHashMap<>();
@@ -77,8 +73,6 @@ public class TheOtherWorldsGame extends BaseGame {
     @Override
     public void create() {
         super.create();
-
-        this.clientWorld = new World(new Vector2(0, -1000), true);
 
         try {
             host = clientConfig.host == null ? "localhost" : clientConfig.host;
@@ -111,7 +105,7 @@ public class TheOtherWorldsGame extends BaseGame {
 
     public void useStageInputProcessor() {
         stage.setKeyboardFocus(authUtils.textField1);
-        if(authUtils.firstLoginComplete) {
+        if (authUtils.firstLoginComplete) {
             authUtils.textField1.setText(authUtils.lastCommand);
         }
         authUtils.textField1.selectAll();
@@ -199,11 +193,11 @@ public class TheOtherWorldsGame extends BaseGame {
         //add all new world components
         synchronized (worldEntityUpdates) {
             worldEntityUpdates.forEach(update -> {
-                WorldEntity entity = worldEntities.get(update.getId());
+                WorldEntityUpdate entity = worldEntities.get(update.getId());
                 if (entity == null) {
-                    worldEntities.put(update.getId(), update.generateBrandNewWorldEntity(clientWorld));
+                    worldEntities.put(update.getId(), update);
                 } else {
-                    worldEntities.put(update.getId(), WorldEntityUpdate.applyUpdate(update, entity));
+                    WorldEntityUpdate.applyUpdate(update, entity);
                 }
             });
             worldEntityUpdates.clear();
@@ -218,10 +212,10 @@ public class TheOtherWorldsGame extends BaseGame {
 
 
         //rotate sprite (for top-down 2d games)
-        WorldEntity player;
-        if(username != null && (player = worldEntities.get("player_" + username)) != null) {
-            camera.position.x = player.getBody().getPosition().x;// - (player.getWidth() / 2);
-            camera.position.y = player.getBody().getPosition().y;// - (player.getHeight() / 2);
+        WorldEntityUpdate player;
+        if (username != null && (player = worldEntities.get("player_" + username)) != null) {
+            camera.position.x = player.getX().get();// - (player.getWidth() / 2);
+            camera.position.y = player.getY().get();// - (player.getHeight() / 2);
         }
         //rotate camera (for top-down 2d games)
         camera.update();
@@ -250,12 +244,23 @@ public class TheOtherWorldsGame extends BaseGame {
 
         //draw all world entities
         worldEntities.forEach((key, entity) ->
-            worldSpriteBatch.draw(createSpriteIfNeeded(entity.getSpriteName()),
-                    entity.getBody().getPosition().x - (entity.getWidth() / 2),
-                    entity.getBody().getPosition().y - (entity.getHeight() / 2),
-                    entity.getWidth(),
-                    entity.getHeight()
-            )
+                {
+                    Sprite sprite = createSpriteIfNeeded(entity.getSpriteName().get());
+
+                    entity.getxOrientation().ifPresent(xOrientation ->
+                        sprite.flip("right".equals(xOrientation), false)
+                    );
+
+                    worldSpriteBatch.draw(sprite,
+                            entity.getX().get() - (entity.getWidth().get() / 2),
+                            entity.getY().get() - (entity.getHeight().get() / 2),
+                            sprite.getX() - (sprite.getWidth() / 2),
+                            sprite.getY() - (sprite.getHeight() / 2),
+                            entity.getWidth().get(),
+                            entity.getHeight().get()
+                            , 1.0f, 1.0f, entity.getAngle().get()
+                    );
+                }
         );
 
 

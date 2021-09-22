@@ -33,4 +33,9 @@ public interface Thing {
 
     Float getLinearDampening();
 
+    Float getAngularDampening();
+
+    boolean isFixedRotation();
+
+    String getXOrientation();
 }

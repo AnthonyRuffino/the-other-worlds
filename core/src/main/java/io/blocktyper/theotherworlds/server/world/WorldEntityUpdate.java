@@ -1,13 +1,11 @@
 package io.blocktyper.theotherworlds.server.world;
 
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.NumberUtils;
+import io.blocktyper.theotherworlds.plugin.entities.WorldEntity;
 
-import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
-import io.blocktyper.theotherworlds.plugin.entities.WorldEntity;
 
 public class WorldEntityUpdate {
 
@@ -27,6 +25,7 @@ public class WorldEntityUpdate {
     private Optional<Float> restitution;
     private Optional<Float> angle;
     private Optional<String> spriteName;
+    private Optional<String> xOrientation;
 
 
     private WorldEntityUpdate() {
@@ -53,54 +52,26 @@ public class WorldEntityUpdate {
         this.restitution = Optional.of(worldEntity.getFixture().getRestitution());
         this.angle = Optional.of(worldEntity.getBody().getAngle());
         this.spriteName = Optional.of(worldEntity.getSpriteName());
+        this.xOrientation = Optional.of(worldEntity.getxOrientation());
     }
 
-    public WorldEntity generateBrandNewWorldEntity(World world) {
-        return new WorldEntity(
-                id,
-                bodyType.get(),
-                world,
-                x.get(),
-                y.get(),
-                width.get(),
-                height.get(),
-                density.get(),
-                friction.get(),
-                restitution.get(),
-                angle.get(),
-                spriteName.get()
-        );
-    }
-
-
-    public WorldEntity generateWorldEntityFromUpdateAndExisting(WorldEntity entity) {
-        return new WorldEntity(
-                id,
-                bodyType.orElse(entity.getBody().getType().getValue()),
-                entity.getBody().getWorld(),
-                x.orElse(entity.getBody().getPosition().x),
-                y.orElse(entity.getBody().getPosition().y),
-                width.orElse(entity.getWidth()),
-                height.orElse(entity.getHeight()),
-                density.orElse(entity.getFixture().getDensity()),
-                friction.orElse(entity.getFixture().getFriction()),
-                restitution.orElse(entity.getFixture().getRestitution()),
-                angle.orElse(entity.getAngle()),
-                spriteName.orElse(entity.getSpriteName())
-        );
-    }
-
-
-    private static Optional<Float> diff(
+    private static Optional<Float> getNewState(
             WorldEntityUpdate then,
             WorldEntityUpdate now,
             Function<WorldEntityUpdate, Optional<Float>> accessor
     ) {
-        return accessor.apply(then).flatMap
-                (thenValue -> accessor.apply(now)
-                        .map(nowValue -> NumberUtils.floatToIntBits(nowValue) == NumberUtils.floatToIntBits(thenValue) ? null : nowValue)
-                        .filter(Objects::nonNull)
-                );
+        Optional<Float> nowOptional = accessor.apply(now);
+
+        return nowOptional.filter(
+                nowValue -> {
+                    Optional<Float> thenOptional = accessor.apply(then);
+                    return thenOptional.isEmpty() || NumberUtils.floatToIntBits(nowValue) != NumberUtils.floatToIntBits(thenOptional.get());
+                }
+        );
+    }
+
+    private static <T> Optional<T> getNewState(Optional<T> now, Optional<T> then) {
+        return now.filter(nowValue -> then.isEmpty() || !then.get().equals(nowValue));
     }
 
     public static Optional<WorldEntityUpdate> getUpdate(WorldEntityUpdate then, WorldEntityUpdate now) {
@@ -111,29 +82,26 @@ public class WorldEntityUpdate {
 
         WorldEntityUpdate update = new WorldEntityUpdate(then.id);
 
-        update.x = diff(then, now, WorldEntityUpdate::getX);
-        update.y = diff(then, now, WorldEntityUpdate::getY);
-        update.width = diff(then, now, WorldEntityUpdate::getWidth);
-        update.height = diff(then, now, WorldEntityUpdate::getHeight);
+        update.x = getNewState(then, now, WorldEntityUpdate::getX);
+        update.y = getNewState(then, now, WorldEntityUpdate::getY);
+        update.width = getNewState(then, now, WorldEntityUpdate::getWidth);
+        update.height = getNewState(then, now, WorldEntityUpdate::getHeight);
 
-        update.angularVelocity = diff(then, now, WorldEntityUpdate::getAngularVelocity);
+        update.angularVelocity = getNewState(then, now, WorldEntityUpdate::getAngularVelocity);
 
-        update.linearDampening = diff(then, now, WorldEntityUpdate::getLinearDampening);
-        update.angularDampening = diff(then, now, WorldEntityUpdate::getAngularDampening);
+        update.linearDampening = getNewState(then, now, WorldEntityUpdate::getLinearDampening);
+        update.angularDampening = getNewState(then, now, WorldEntityUpdate::getAngularDampening);
 
-        update.density = diff(then, now, WorldEntityUpdate::getDensity);
-        update.friction = diff(then, now, WorldEntityUpdate::getFriction);
-        update.restitution = diff(then, now, WorldEntityUpdate::getRestitution);
-        update.angle = diff(then, now, WorldEntityUpdate::getAngle);
+        update.density = getNewState(then, now, WorldEntityUpdate::getDensity);
+        update.friction = getNewState(then, now, WorldEntityUpdate::getFriction);
+        update.restitution = getNewState(then, now, WorldEntityUpdate::getRestitution);
+        update.angle = getNewState(then, now, WorldEntityUpdate::getAngle);
 
-        String nowSpriteName = now.spriteName.get();
-        update.spriteName = Optional.ofNullable(then.spriteName.get().equals(nowSpriteName) ? null : nowSpriteName);
+        update.spriteName = getNewState(now.spriteName, then.spriteName);
+        update.linearVelocity = getNewState(now.linearVelocity, then.linearVelocity);
+        update.bodyType = getNewState(now.bodyType, then.bodyType);
+        update.xOrientation = getNewState(now.xOrientation, then.xOrientation);
 
-        Vector2 linearVelocity = now.linearVelocity.get();
-        update.linearVelocity = Optional.ofNullable(then.linearVelocity.get().equals(linearVelocity) ? null : linearVelocity);
-
-        Integer nowBodyType = now.bodyType.get();
-        update.bodyType = Optional.ofNullable(then.bodyType.get().equals(nowBodyType) ? null : nowBodyType);
 
         return Optional.ofNullable(
                 (
@@ -151,42 +119,27 @@ public class WorldEntityUpdate {
                                 || update.spriteName.isPresent()
                                 || update.linearVelocity.isPresent()
                                 || update.bodyType.isPresent()
+                                || update.xOrientation.isPresent()
                 ) ? update : null
         );
     }
 
 
-    public static WorldEntity applyUpdate(WorldEntityUpdate update, WorldEntity entity) {
+    public static void applyUpdate(WorldEntityUpdate update, WorldEntityUpdate existing) {
 
-        if (!update.id.equals(entity.getId())) {
-            throw new RuntimeException("Wrong update application for entities: " + update.id + " to " + entity.getId());
+        if (!update.id.equals(existing.getId())) {
+            throw new RuntimeException("Wrong update application for entities: " + update.id + " to " + existing.getId());
         }
 
-        return update.generateWorldEntityFromUpdateAndExisting(entity);
+        update.x.ifPresent(value -> existing.x = update.x);
+        update.y.ifPresent(value -> existing.y = update.y);
 
-//        update.x.ifPresent(value -> entity.getBody().getPosition().x = value);
-//        update.y.ifPresent(value -> entity.getBody().getPosition().y = value);
-//
-//        update.width.ifPresent(entity::setWidth);
-//        update.height.ifPresent(entity::setHeight);
-//
-//        update.linearVelocity.ifPresent(entity::setLinearVelocity);
-//        update.angularVelocity.ifPresent(entity::setAngularVelocity);
-//
-//        update.linearDampening.ifPresent(entity::setLinearDampening);
-//        update.angularDampening.ifPresent(entity::setAngularDampening);
-//
-//        update.width.ifPresent(entity::setWidth);
-//        update.height.ifPresent(entity::setHeight);
-//
-//
-//        update.density.ifPresent(value -> entity.getFixture().setDensity(value));
-//        update.friction.ifPresent(value -> entity.getFixture().setFriction(value));
-//        update.restitution.ifPresent(value -> entity.getFixture().setRestitution(value));
-//        update.angle.ifPresent(entity::setAngle);
-//        update.spriteName.ifPresent(entity::setSpriteName);
+        update.width.ifPresent(value -> existing.width = update.width);
+        update.height.ifPresent(value -> existing.height = update.height);
 
-
+        update.angle.ifPresent(value -> existing.angle = update.angle);
+        update.spriteName.ifPresent(value -> existing.spriteName = update.spriteName);
+        update.xOrientation.ifPresent(value -> existing.xOrientation = update.xOrientation);
     }
 
 
@@ -374,5 +327,13 @@ public class WorldEntityUpdate {
     public WorldEntityUpdate setAngularDampening(Float angularDampening) {
         this.angularDampening = Optional.of(angularDampening);
         return this;
+    }
+
+    public Optional<String> getxOrientation() {
+        return xOrientation;
+    }
+
+    public void setxOrientation(Optional<String> xOrientation) {
+        this.xOrientation = xOrientation;
     }
 }

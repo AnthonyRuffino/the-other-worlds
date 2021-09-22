@@ -12,7 +12,6 @@ import io.blocktyper.theotherworlds.plugin.PluginServer;
 import io.blocktyper.theotherworlds.plugin.actions.ActionListener;
 import io.blocktyper.theotherworlds.plugin.actions.PlayerAction;
 import io.blocktyper.theotherworlds.plugin.actions.PlayerConnectionListener;
-import io.blocktyper.theotherworlds.plugin.entities.Damageable;
 import io.blocktyper.theotherworlds.plugin.entities.Thing;
 import io.blocktyper.theotherworlds.plugin.entities.WorldEntity;
 
@@ -22,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class PluginExample extends BasePlugin implements ActionListener, PlayerConnectionListener {
 
     private int damageAmount;
-    long lifeSpan = 1000;
+    long lifeSpan = 10000;
 
     private final Set<String> INTERESTS = Set.of("forward", "left", "back", "right");
 
@@ -41,15 +40,7 @@ public class PluginExample extends BasePlugin implements ActionListener, PlayerC
         return List.of(new ContactListener() {
             @Override
             public void beginContact(Contact contact) {
-                Object entityA = contact.getFixtureA().getBody().getUserData();
-                Object entityB = contact.getFixtureB().getBody().getUserData();
-
-                if (entityA instanceof Damageable) {
-                    ((Damageable) entityA).changeHealth(damageAmount);
-                }
-                if (entityA instanceof Damageable) {
-                    ((Damageable) entityB).changeHealth(damageAmount);
-                }
+                analyzeContact(contact, "begin");
             }
 
             @Override
@@ -59,7 +50,7 @@ public class PluginExample extends BasePlugin implements ActionListener, PlayerC
 
             @Override
             public void preSolve(Contact contact, Manifold oldManifold) {
-
+                analyzeContact(contact, "pre");
             }
 
             @Override
@@ -67,6 +58,22 @@ public class PluginExample extends BasePlugin implements ActionListener, PlayerC
 
             }
         });
+    }
+
+    private void analyzeContact(Contact contact, String type) {
+        Object entityA = contact.getFixtureA().getBody().getUserData();
+        Object entityB = contact.getFixtureB().getBody().getUserData();
+
+        if (entityA instanceof WorldEntity) {
+            WorldEntity entityA1 = (WorldEntity) entityA;
+            //entityA1.changeHealth(damageAmount);
+            //System.out.println(type + " - " + entityA1.getId() + ": " + entityA1.getBody().getLinearVelocity().y);
+        }
+        if (entityA instanceof WorldEntity) {
+            WorldEntity entityB1 = (WorldEntity) entityB;
+            //entityB1.changeHealth(damageAmount);
+            //System.out.println(type + " - " + entityB1.getId() + ": " + entityB1.getBody().getLinearVelocity().y);
+        }
     }
 
     @Override
@@ -89,12 +96,12 @@ public class PluginExample extends BasePlugin implements ActionListener, PlayerC
                     entityId = "player_a";
                 } else {
                     img = "sun.jpg";
-                    health = (int) (5000 + (tick*2));
-                    deathTick = tick + lifeSpan + (tick/2);
+                    health = (int) (5000 + (tick * 2));
+                    deathTick = tick + lifeSpan + (tick / 2);
                     entityId = "e_" + tick;
                 }
 
-                return List.of(getThing(tick, entityId, health, tick, deathTick, img, null, null));
+                return List.of(getThing(tick, tick, entityId, health, 1f, deathTick, img, null, 2f, 2f, false, "right"));
             }
             if (!thingsToAdd.isEmpty()) {
                 synchronized (thingsToAdd) {
@@ -112,19 +119,34 @@ public class PluginExample extends BasePlugin implements ActionListener, PlayerC
         Optional.ofNullable(pluginServer.getDynamicEntities().get(playerName))
                 .ifPresent(player -> {
                     actions.forEach(action -> processPlayerAction(player, action));
-                    if (player.getBody().getLinearVelocity() != null) {
-                        player.getBody().setLinearVelocity(normalizeIfNeeded(player.getBody().getLinearVelocity()));
-                    }
                 });
     }
 
     private void processPlayerAction(WorldEntity player, String action) {
+
+        if (action.equals("left") || action.equals("right")) {
+            player.setxOrientation(action);
+        }
+
         Optional.ofNullable(DIRECTION_MAP.get(action)).ifPresent(direction ->
-            player.getBody().setLinearVelocity(applyDirectionVector(player, direction))
+                player.getBody().setLinearVelocity(normalizeIfNeeded(applyDirectionVector(player, direction)))
         );
     }
 
-    public Thing getThing(long size, String entityId, Integer health, float restitution, Long deathTick, String img, String playerName, Float linearDampening) {
+    public Thing getThing(
+            long size,
+            long angle,
+            String entityId,
+            Integer health,
+            float restitution,
+            Long deathTick,
+            String img,
+            String playerName,
+            Float linearDampening,
+            Float angularDampening,
+            boolean fixedRotation,
+            String xOrientation
+    ) {
         return new Thing() {
             @Override
             public String getId() {
@@ -178,7 +200,7 @@ public class PluginExample extends BasePlugin implements ActionListener, PlayerC
 
             @Override
             public float getAngle() {
-                return size;
+                return angle;
             }
 
             @Override
@@ -194,6 +216,21 @@ public class PluginExample extends BasePlugin implements ActionListener, PlayerC
             @Override
             public Float getLinearDampening() {
                 return linearDampening;
+            }
+
+            @Override
+            public Float getAngularDampening() {
+                return angularDampening;
+            }
+
+            @Override
+            public boolean isFixedRotation() {
+                return fixedRotation;
+            }
+
+            @Override
+            public String getXOrientation() {
+                return xOrientation;
             }
         };
     }
@@ -260,6 +297,21 @@ public class PluginExample extends BasePlugin implements ActionListener, PlayerC
             public Float getLinearDampening() {
                 return 1f;
             }
+
+            @Override
+            public Float getAngularDampening() {
+                return 1f;
+            }
+
+            @Override
+            public boolean isFixedRotation() {
+                return false;
+            }
+
+            @Override
+            public String getXOrientation() {
+                return "right";
+            }
         });
     }
 
@@ -306,12 +358,6 @@ public class PluginExample extends BasePlugin implements ActionListener, PlayerC
             playerActions.remove(action.actionName);
         } else {
             playerActions.add(action.actionName);
-            Optional.ofNullable(DIRECTION_MAP.get(action.actionName)).ifPresent(direction -> {
-                Vector2 newVelocity = normalizeIfNeeded(applyDirectionVector(player, direction));
-                if (newVelocity != null) {
-                    player.getBody().setLinearVelocity(newVelocity);
-                }
-            });
         }
     }
 
@@ -340,7 +386,7 @@ public class PluginExample extends BasePlugin implements ActionListener, PlayerC
         if (isDisconnect) {
 
         } else {
-            thingsToAdd.put(player, getThing(2000, player, null, 0f, null, player.equals("b") ? "morgan-blocksky.png" : "mo.png", player, 0.5f));
+            thingsToAdd.put(player, getThing(2000, 0, player, null, 0f, null, player.equals("b") ? "morgan-blocksky.png" : "dodo.png", player, 0.5f, 1000f, true, "right"));
         }
     }
 }

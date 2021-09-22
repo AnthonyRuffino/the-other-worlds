@@ -106,10 +106,10 @@ public class TheOtherWorldsGameServer implements PluginServer {
     }
 
     public void stop() {
-        if(timer != null) {
+        if (timer != null) {
             timer.cancel();
         }
-        if(server != null) {
+        if (server != null) {
             server.removeListener(listener);
             server.stop();
         }
@@ -151,12 +151,16 @@ public class TheOtherWorldsGameServer implements PluginServer {
         tick++;
         long delta_time = getDeltaTime();
 
-        Map<String, WorldEntity> newWorldEntities = pluginLoader.getNewWorldEntities();
-        dynamicEntities.putAll(newWorldEntities);
+        //moved below as a short term hack for processing user input which affects entity state.
+        //Map<String, WorldEntity> newWorldEntities = pluginLoader.getNewWorldEntities();
+        //dynamicEntities.putAll(newWorldEntities);
 
         doAllRemovals();
 
         Map<String, WorldEntityUpdate> beforePhysicsState = getDynamicEntitiesAsUpdates();
+
+        Map<String, WorldEntity> newWorldEntities = pluginLoader.getNewWorldEntities();
+        dynamicEntities.putAll(newWorldEntities);
 
         processPlayerMovementActions(delta_time);
         doPhysicsStep(delta_time);
@@ -258,10 +262,14 @@ public class TheOtherWorldsGameServer implements PluginServer {
     }
 
     private Optional<WorldEntityUpdate> getUpdate(Map<String, WorldEntityUpdate> beforePhysicsState, Map.Entry<String, WorldEntity> entry) {
-        return WorldEntityUpdate.getUpdate(
-                beforePhysicsState.get(entry.getKey()),
-                new WorldEntityUpdate(entry.getValue())
-        );
+        String entityId = entry.getKey();
+        return Optional.ofNullable(beforePhysicsState.get(entityId))
+                .flatMap(thenState ->
+                        WorldEntityUpdate.getUpdate(
+                                beforePhysicsState.get(entityId),
+                                new WorldEntityUpdate(entry.getValue())
+                        )
+                );
     }
 
     @NotNull

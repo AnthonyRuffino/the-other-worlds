@@ -13,6 +13,8 @@ public class WorldEntity implements Damageable {
     private float width;
     private float height;
     private float angle;
+    private String xOrientation = "right";
+    private String yOrientation = "up";
 
     private Long deathTick;
     private Integer health;
@@ -36,7 +38,8 @@ public class WorldEntity implements Damageable {
             float friction,
             float restitution,
             float angle,
-            String spriteName
+            String spriteName,
+            String xOrientation
     ) {
         this.id = id;
 
@@ -66,6 +69,7 @@ public class WorldEntity implements Damageable {
 
         this.spriteName = spriteName;
         this.body.setUserData(this);
+        this.setxOrientation(xOrientation);
     }
 
 
@@ -154,5 +158,21 @@ public class WorldEntity implements Damageable {
     public WorldEntity setHealth(Integer health) {
         this.health = health;
         return this;
+    }
+
+    public String getxOrientation() {
+        return xOrientation;
+    }
+
+    public void setxOrientation(String xOrientation) {
+        this.xOrientation = xOrientation;
+    }
+
+    public String getyOrientation() {
+        return yOrientation;
+    }
+
+    public void setyOrientation(String yOrientation) {
+        this.yOrientation = yOrientation;
     }
 }

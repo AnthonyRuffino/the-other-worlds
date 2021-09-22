@@ -1,2 +1,2 @@
-include 'desktop', 'core', 'plugin', 'example'
+include 'plugin', 'core', 'example', 'desktop'
 
